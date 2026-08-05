@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Locked Inn — Study Smarter</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#1B1D16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Locked Inn">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F6FB;
+  --card:#FFFFFF;
+  --ink:#1B1E2B;
+  --ink-soft:#666B80;
+  --ink-faint:#9AA0B4;
+  --violet:#A8E62B;
+  --violet-deep:#4C7A0C;
+  --violet-tint:#EEFAD1;
+  --frame-dark:#1B1D16;
+  --mint:#00C2A8;
+  --mint-tint:#E3FBF6;
+  --coral:#FF7A64;
+  --coral-tint:#FFEDE9;
+  --chrome-1:#F4F5F9;
+  --chrome-2:#DDE1EA;
+  --chrome-3:#FFFFFF;
+  --line:#E9EAF2;
+  --radius:20px;
+  --shadow:0 10px 30px rgba(30,32,60,.08);
+  --shadow-lg:0 20px 50px rgba(30,32,60,.14);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:#DEE1EA;
+  color:var(--ink);
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+h1,h2,h3,h4,.display{font-family:'Space Grotesk',sans-serif;}
+button{font-family:inherit;}
+::-webkit-scrollbar{width:0;height:0;}
+
+#frame{
+  width:100%;
+  max-width:460px;
+  min-height:100vh;
+  background:var(--bg);
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--shadow-lg);
+}
+@media (min-width:900px){
+  body{padding:32px 0;}
+  #frame{
+    min-height:calc(100vh - 64px);
+    border-radius:36px;
+    border:8px solid #14151f;
+  }
+}
+
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s ease;}
+.screen.active{opacity:1;pointer-events:auto;z-index:2;}
+
+/* ---------- Chrome bubbles ambient bg ---------- */
+.bubbles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.bubble{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 30% 28%, #ffffff 0%, var(--chrome-2) 45%, #b9bfcf 75%, #9aa1b6 100%);
+  opacity:.55;
+  filter:blur(.2px);
+  animation:float 14s ease-in-out infinite;
+}
+.bubble::after{content:"";position:absolute;top:12%;left:18%;width:26%;height:26%;background:#fff;border-radius:50%;filter:blur(2px);opacity:.85;}
+@keyframes float{
+  0%,100%{transform:translateY(0) translateX(0);}
+  50%{transform:translateY(-22px) translateX(10px);}
+}
+
+/* ---------- Splash ---------- */
+#splash{align-items:center;justify-content:center;background:linear-gradient(160deg,#F7F7F5,#ECEDE8);}
+.splash-logo{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+.splash-logo img{display:block;}
+.splash-book{width:210px;opacity:0;transform:translateY(26px) scale(.9);
+  animation:bookRise .9s cubic-bezier(.2,.8,.3,1) forwards;}
+@keyframes bookRise{to{opacity:1;transform:translateY(0) scale(1);}}
+.splash-word{width:190px;margin-bottom:14px;opacity:0;transform:translateY(-14px);
+  animation:wordDrop .7s ease forwards;animation-delay:.75s;}
+@keyframes wordDrop{to{opacity:1;transform:translateY(0);}}
+.splash-tag{opacity:0;animation:fadeUp .6s ease forwards;animation-delay:1.35s;
+  color:var(--ink-soft);font-size:14px;margin-top:18px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.skip-btn{position:absolute;bottom:28px;right:24px;background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;z-index:2;}
+
+/* ---------- Shared layout ---------- */
+.pad{padding:24px 22px 100px;position:relative;z-index:1;flex:1;overflow-y:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;position:relative;z-index:1;}
+.brand{display:flex;align-items:center;gap:9px;}
+.brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+
+.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px;border:1px solid var(--line);}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--violet);color:var(--ink);border:none;border-radius:14px;
+  padding:14px 20px;font-weight:700;font-size:15px;cursor:pointer;width:100%;
+  transition:transform .15s ease, box-shadow .15s ease;box-shadow:0 8px 20px rgba(76,122,12,.28);
+}
+.btn:active{transform:scale(.96);}
+.btn:hover{transform:translateY(-1px);}
+.btn.secondary{background:var(--violet-tint);color:var(--violet-deep);box-shadow:none;}
+.btn.mint{background:var(--mint);box-shadow:0 8px 20px rgba(0,194,168,.3);}
+.btn.ghost{background:transparent;color:var(--ink-soft);box-shadow:none;border:1px solid var(--line);}
+input[type=text],input[type=tel],input[type=number],input[type=date],input[type=email],input[type=password],textarea,select{
+  width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;
+  padding:13px 14px;font-size:15px;font-family:inherit;color:var(--ink);outline:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--violet-deep);}
+textarea{resize:vertical;min-height:80px;}
+label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:0 0 6px;display:block;text-transform:uppercase;letter-spacing:.04em;}
+.field{margin-bottom:14px;}
+.eyebrow{font-size:12px;font-weight:700;color:var(--violet-deep);text-transform:uppercase;letter-spacing:.08em;margin:0 0 4px;}
+.pagetitle{font-size:22px;margin:0 0 4px;letter-spacing:-.02em;}
+.sub{color:var(--ink-soft);font-size:14px;margin:0 0 20px;}
+
+/* ---------- Nav ---------- */
+#navbar{
+  position:absolute;bottom:0;left:0;right:0;z-index:5;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding:10px 6px calc(10px + env(safe-area-inset-bottom));
+}
+.navbtn{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-faint);cursor:pointer;font-size:10.5px;font-weight:600;padding:4px 8px;border-radius:10px;}
+.navbtn.active{color:var(--violet-deep);}
+.navbtn svg{width:21px;height:21px;}
+
+/* ---------- Home ---------- */
+#home .pad{display:flex;flex-direction:column;justify-content:flex-start;padding-top:56px;}
+.greeting-icon{width:76px;height:auto;margin-bottom:14px;}
+.greeting h1{font-size:27px;margin:0 0 6px;letter-spacing:-.02em;}
+.greeting p{color:var(--ink-soft);margin:0 0 26px;font-size:15px;}
+.quote-card{background:linear-gradient(135deg,var(--frame-dark),var(--violet-deep));color:#fff;border-radius:22px;padding:24px 22px;margin-bottom:26px;box-shadow:0 14px 30px rgba(27,29,22,.35);}
+.quote-card .qmark{font-family:'Space Grotesk';font-size:34px;line-height:.6;color:var(--violet);opacity:.9;}
+.quote-card p{font-size:16.5px;line-height:1.5;margin:8px 0 10px;font-weight:500;}
+.quote-card .tag{font-size:12px;opacity:.75;}
+.shortcut-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px;}
+.shortcut-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.shortcut-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.shortcut-tile:active{transform:scale(.96);}
+.shortcut-tile .sic{width:34px;height:34px;border-radius:10px;background:var(--violet-tint);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+.shortcut-tile span{font-size:11.5px;font-weight:600;}
+.nextup{display:flex;align-items:center;gap:12px;background:var(--frame-dark);color:#fff;border-radius:16px;padding:13px 15px;margin-top:16px;}
+.nextup .nu-dot{width:9px;height:9px;border-radius:50%;background:var(--violet);flex:none;}
+.nextup b{display:block;font-size:13.5px;}
+.nextup span{font-size:11.5px;opacity:.7;}
+.nextup .nu-days{margin-left:auto;font-size:12px;font-weight:700;color:var(--violet);}
+
+/* ---------- Dashboard ---------- */
+.stat-row{display:flex;gap:12px;margin-bottom:18px;}
+.stat{flex:1;background:var(--card);border-radius:16px;padding:14px;text-align:center;border:1px solid var(--line);}
+.stat b{display:block;font-size:20px;font-family:'Space Grotesk';}
+.stat span{font-size:11px;color:var(--ink-soft);}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
+.section-title h3{font-size:15.5px;margin:0;}
+.section-title button{background:none;border:none;color:var(--violet-deep);font-weight:700;font-size:13px;cursor:pointer;}
+.reminder-row,.todo-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+.reminder-row:last-child,.todo-row:last-child{border-bottom:none;}
+.rdot{width:9px;height:9px;border-radius:50%;background:var(--coral);flex:none;}
+.reminder-row .rmeta b{display:block;font-size:14px;}
+.reminder-row .rmeta span{font-size:12px;color:var(--ink-soft);}
+.rcount{margin-left:auto;font-size:12px;font-weight:700;color:var(--coral);background:var(--coral-tint);padding:4px 9px;border-radius:20px;}
+.chk{width:20px;height:20px;border-radius:7px;border:2px solid var(--line);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.chk.done{background:var(--mint);border-color:var(--mint);color:#fff;}
+.todo-row span{font-size:14.5px;flex:1;}
+.todo-row.done span{text-decoration:line-through;color:var(--ink-faint);}
+.del{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:16px;padding:4px;}
+.empty{text-align:center;padding:28px 10px;color:var(--ink-faint);font-size:13.5px;}
+
+/* ---------- Flashcards ---------- */
+.deck-list{display:grid;gap:12px;}
+.deck{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.deck:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.deck:active{transform:scale(.98);}
+.deck-ic{width:38px;height:38px;border-radius:11px;background:var(--violet-tint);display:flex;align-items:center;justify-content:center;flex:none;}
+.deck b{font-size:14.5px;display:block;}
+.deck span{font-size:12px;color:var(--ink-soft);}
+.flip-stage{perspective:1200px;height:230px;margin-bottom:14px;}
+.flip-card{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,.2,.2,1);cursor:pointer;}
+.flip-card.flipped{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16.5px;font-weight:600;line-height:1.4;box-shadow:var(--shadow);}
+.face.front{background:var(--card);border:1.5px solid var(--line);}
+.face.back{background:linear-gradient(135deg,var(--mint),#00A98F);color:#fff;transform:rotateY(180deg);}
+.card-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-nav button{background:var(--card);border:1px solid var(--line);width:44px;height:44px;border-radius:12px;font-size:16px;cursor:pointer;}
+.card-progress{font-size:13px;color:var(--ink-soft);font-weight:600;}
+
+/* ---------- Notes ---------- */
+.note{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.note:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.note:active{transform:scale(.98);}
+.note b{font-size:14.5px;display:block;margin-bottom:4px;}
+.note p{margin:0;font-size:13px;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.note .nd{font-size:11px;color:var(--ink-faint);margin-top:8px;}
+
+/* ---------- Papers ---------- */
+.paper-link{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:10px;text-decoration:none;color:var(--ink);}
+.paper-link b{font-size:14px;display:block;}
+.paper-link span{font-size:12px;color:var(--ink-soft);}
+.paper-ic{width:36px;height:36px;border-radius:10px;background:var(--mint-tint);display:flex;align-items:center;justify-content:center;flex:none;color:var(--mint);}
+
+/* ---------- Tutor chat ---------- */
+#tutor .pad{display:flex;flex-direction:column;padding:24px 22px 88px;overflow:hidden;}
+.chatlog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:12px;}
+.msg{max-width:82%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.5;}
+.msg.user{align-self:flex-end;background:var(--violet);color:var(--ink);font-weight:500;border-bottom-right-radius:4px;}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px;}
+.yt-chip{display:inline-flex;align-items:center;gap:6px;background:var(--coral-tint);color:#C6410D;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;text-decoration:none;margin:4px 6px 0 0;}
+.chatbar{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--line);}
+.chatbar input{flex:1;}
+.sendbtn{width:46px;height:46px;border-radius:14px;background:var(--violet);border:none;color:var(--ink);font-size:16px;cursor:pointer;flex:none;transition:transform .15s ease;}
+.sendbtn:active{transform:scale(.9);}
+.typing{align-self:flex-start;display:flex;gap:4px;padding:12px 16px;}
+.typing i{width:6px;height:6px;background:var(--ink-faint);border-radius:50%;animation:blink 1.2s infinite;}
+.typing i:nth-child(2){animation-delay:.2s;}.typing i:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+
+/* ---------- Auth ---------- */
+#auth .pad{display:flex;flex-direction:column;justify-content:flex-start;padding-top:48px;}
+.otp-boxes{display:flex;gap:10px;margin:6px 0 18px;}
+.otp-boxes input{text-align:center;font-size:22px;font-weight:700;padding:14px 0;}
+.demo-note{background:var(--mint-tint);color:#00806D;border-radius:12px;padding:12px 14px;font-size:12.5px;margin-bottom:16px;}
+.back-link{background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;padding:0;margin-bottom:16px;text-align:left;}
+
+.modal-backdrop{position:absolute;inset:0;background:rgba(20,21,35,.45);z-index:20;display:flex;align-items:flex-end;}
+.modal{background:#fff;border-radius:24px 24px 0 0;padding:22px;width:100%;max-height:85%;overflow-y:auto;}
+.modal h3{margin:0 0 14px;}
+.toast{position:absolute;left:22px;right:22px;bottom:96px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:13px;z-index:30;box-shadow:var(--shadow-lg);text-align:center;}
+
+.gen-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.gen-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.gen-tile:active{transform:scale(.96);}
+.gen-tile.selected{border-color:var(--violet);background:var(--violet-tint);box-shadow:0 0 0 2px var(--violet);}
+.gen-tile .gt-ic{font-size:20px;margin-bottom:6px;}
+.gen-tile span{font-size:12px;font-weight:600;}
+.gen-result{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.gen-result h3{margin:0 0 10px;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div id="frame">
+
+  <!-- SPLASH -->
+  <div class="screen active" id="splash">
+    <div class="bubbles" id="bubblesSplash"></div>
+    <button class="skip-btn" onclick="goto('auth')">Skip ›</button>
+    <div class="splash-logo">
+      <img class="splash-word" src="assets/logo-word.png" alt="Locked Inn">
+      <img class="splash-book" src="assets/logo-book.png" alt="">
+      <div class="splash-tag">Your study life, unlocked.</div>
+    </div>
+  </div>
+
+  <!-- AUTH -->
+  <div class="screen" id="auth">
+    <div class="pad">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:28px;" id="logoMark"></div>
+      <p class="eyebrow" style="text-align:center;" id="authEyebrow">Welcome</p>
+      <h1 class="pagetitle" style="text-align:center;" id="authTitle">Create your account</h1>
+      <p class="sub" style="text-align:center;" id="authSub">One-time sign up — we'll keep every deck, note and streak safe for you, wherever you log in.</p>
+      <div class="field" id="nameField">
+        <label class="field-label">First name</label>
+        <input type="text" id="nameInput" placeholder="Your first name">
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" id="emailInput" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" id="passwordInput" placeholder="At least 6 characters">
+      </div>
+      <div id="authError" style="display:none;background:var(--coral-tint);color:#B84A2E;border-radius:12px;padding:12px 14px;font-size:12.5px;margin-bottom:14px;"></div>
+      <button class="btn" id="authBtn" onclick="submitAuth()">Create account</button>
+      <button class="btn ghost" style="margin-top:10px;" onclick="toggleAuthMode()" id="authToggle">Already have an account? Log in</button>
+      <div id="authNotice" style="display:none;background:var(--mint-tint);color:#00806D;border-radius:12px;padding:12px 14px;font-size:12.5px;margin-top:14px;"></div>
+      <button id="forgotLink" onclick="forgotPassword()" style="display:none;background:none;border:none;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;cursor:pointer;margin:14px auto 0;">Forgot your password?</button>
+      <p style="text-align:center;font-size:11px;color:var(--ink-faint);margin-top:18px;line-height:1.5;">By continuing, you agree to our <a href="legal.html" target="_blank" style="color:var(--ink-soft);text-decoration:underline;">Terms &amp; Privacy</a>.</p>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div class="screen" id="home">
+    <div class="bubbles" id="bubblesHome"></div>
+    <div class="pad">
+      <div class="greeting">
+        <img class="greeting-icon" src="assets/logo-book.png" alt="Locked Inn">
+        <h1 id="homeGreeting">Hey there 👋</h1>
+        <p id="homeSub">Ready to make today count?</p>
+      </div>
+      <div class="quote-card">
+        <div class="qmark">"</div>
+        <p id="quoteText"></p>
+        <div class="tag">Today's inspiration</div>
+      </div>
+      <button class="btn" onclick="goto('dashboard')">Get started →</button>
+      <div id="homeExtra"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen" id="dashboard">
+    <div class="topbar"><div class="brand"><img src="assets/logo-book.png" alt="" style="display:block;width:46px;height:auto;"><span>Locked Inn</span></div></div>
+    <div class="pad" id="dashboardPad"></div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div class="screen" id="flashcards">
+    <div class="pad" id="flashPad"></div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="screen" id="notes">
+    <div class="pad" id="notesPad"></div>
+  </div>
+
+  <!-- PAPERS -->
+  <div class="screen" id="papers">
+    <div class="pad" id="papersPad"></div>
+  </div>
+
+  <!-- TUTOR -->
+  <div class="screen" id="tutor">
+    <div class="pad" id="tutorPad"></div>
+  </div>
+
+  <!-- STUDY GENERATOR -->
+  <div class="screen" id="generator">
+    <div class="pad" id="generatorPad"></div>
+  </div>
+
+  <div id="navbar" style="display:none;">
+    <button class="navbtn" data-route="dashboard" onclick="goto('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7"/><path d="M5 10v9h14v-9"/></svg>Home</button>
+    <button class="navbtn" data-route="flashcards" onclick="goto('flashcards')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="14" height="10" rx="2"/><rect x="7" y="9" width="14" height="10" rx="2" fill="#fff"/></svg>Cards</button>
+    <button class="navbtn" data-route="notes" onclick="goto('notes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l3 3v15H5z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>Notes</button>
+    <button class="navbtn" data-route="papers" onclick="goto('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h9l3 3v13H6z"/><path d="M9 12h6M9 16h6"/></svg>Papers</button>
+    <button class="navbtn" data-route="tutor" onclick="goto('tutor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>Tutor</button>
+    <button class="navbtn" data-route="generator" onclick="goto('generator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="M19 15l1 2.5L22.5 19 20 20l-1 2.5L18 20l-2.5-1L18 17.5z"/></svg>Make</button>
+  </div>
+
+</div>
+
+<script type="module">
+/* ===== FIREBASE EMAIL/PASSWORD AUTH + FIRESTORE =====
+   1. Create a project at https://console.firebase.google.com (free Spark plan is fine — no billing needed)
+   2. Build > Authentication > Sign-in method > enable "Email/Password"
+   3. Build > Firestore Database > Create database (start in production mode)
+      then Rules tab, paste this so users can only touch their own data:
+
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /users/{uid} {
+              allow read, write: if request.auth != null && request.auth.uid == uid;
+            }
+          }
+        }
+
+   4. Project settings > General > your web app > copy the config below
+   5. Authentication > Settings > Authorized domains — add the domain
+      you deploy this app to (localhost is allowed by default).
+*/
+const firebaseConfig = {
+  apiKey: "AIzaSyD7UAOu3NYI8NwQtzwyv_EdSzp2CnxghHM",
+  authDomain: "locked-inn.firebaseapp.com",
+  projectId: "locked-inn",
+  storageBucket: "locked-inn.firebasestorage.app",
+  messagingSenderId: "228735115843",
+  appId: "1:228735115843:web:dbf50e000c1804c90ceaf6",
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+let auth = null, db = null;
+
+window.firebaseReady = false;
+try{
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  window.firebaseReady = true;
+}catch(e){ console.error("Firebase init failed", e); }
+
+window.firebaseSignUp = async function(email, password, name){
+  if(!window.firebaseReady) throw new Error("Firebase isn't configured yet — add your project keys in index.html.");
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  if(name) await updateProfile(cred.user, { displayName: name });
+  return cred.user;
+};
+
+window.firebaseSignIn = async function(email, password){
+  if(!window.firebaseReady) throw new Error("Firebase isn't configured yet — add your project keys in index.html.");
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  return cred.user;
+};
+
+window.firebaseSignOut = async function(){
+  if(auth) await signOut(auth);
+};
+
+window.firebaseResetPassword = async function(email){
+  if(!window.firebaseReady) throw new Error("Firebase isn't configured yet.");
+  await sendPasswordResetEmail(auth, email);
+};
+
+window.firebaseOnAuthChange = function(callback){
+  if(!window.firebaseReady){ callback(null); return; }
+  onAuthStateChanged(auth, (user) => callback(user));
+};
+
+window.firestoreLoad = async function(uid){
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
+};
+
+window.firestoreSave = async function(uid, dataObj){
+  await setDoc(doc(db, "users", uid), dataObj, { merge: true });
+};
+</script>
+<script>
+/* ================= STORAGE WRAPPER ================= */
+const hasStorage = typeof window.storage !== "undefined";
+const mem = {};
+async function sGet(key){
+  if(hasStorage){ try{ const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }catch(e){ return null; } }
+  return mem[key] !== undefined ? mem[key] : null;
+}
+async function sSet(key,val){
+  if(hasStorage){ try{ await window.storage.set(key, JSON.stringify(val)); }catch(e){} }
+  mem[key] = val;
+}
+
+/* ================= STATE ================= */
+let profile = null;
+let currentUser = null;
+let data = { todos:[], reminders:[], notes:[], decks:[], library:[] };
+let chat = [];
+let currentDeck = null, cardIndex = 0, flipped = false;
+
+const QUOTES = [
+  "Small steps, repeated daily, outrun big plans made once.",
+  "You don't need to feel ready. You just need to begin.",
+  "Discipline is choosing what you want most over what you want now.",
+  "Every page you review today is a shortcut for future you.",
+  "Progress hides inside boring, consistent effort.",
+  "Confidence is built one finished task at a time.",
+  "The exam doesn't test luck — it tests the version of you who showed up.",
+  "Rest is part of the plan, not a break from it.",
+  "You are one focused hour away from feeling in control again.",
+  "Grades fade, the habit of showing up doesn't."
+];
+
+/* ================= INIT ================= */
+let authKnown = false;
+let splashMinDone = false;
+let authListenerFired = false;
+
+function tryLeaveSplash(){
+  if(authKnown && splashMinDone && document.getElementById("splash").classList.contains("active")){
+    goto(profile ? "home" : "auth");
+  }
+}
+
+window.addEventListener("DOMContentLoaded", async ()=>{
+  spawnBubbles("bubblesSplash", 7);
+  spawnBubbles("bubblesHome", 6);
+  renderLogoMark();
+
+  setTimeout(()=>{ splashMinDone = true; tryLeaveSplash(); }, 1800);
+
+  window.firebaseOnAuthChange(async (user)=>{
+    currentUser = user;
+    if(user){
+      await loadCloudData(user);
+    }else{
+      profile = null;
+      data = { todos:[], reminders:[], notes:[], decks:[] };
+      chat = [];
+    }
+    if(!authListenerFired){
+      authListenerFired = true;
+      authKnown = true;
+      tryLeaveSplash();
+    }else{
+      goto(profile ? "home" : "auth");
+    }
+  });
+});
+
+function spawnBubbles(id,n){
+  const wrap = document.getElementById(id); if(!wrap) return;
+  wrap.innerHTML="";
+  for(let i=0;i<n;i++){
+    const b=document.createElement("div"); b.className="bubble";
+    const size = 40+Math.random()*90;
+    b.style.width=size+"px"; b.style.height=size+"px";
+    b.style.left=(Math.random()*90)+"%"; b.style.top=(Math.random()*85)+"%";
+    b.style.animationDuration=(10+Math.random()*10)+"s";
+    b.style.animationDelay=(-Math.random()*10)+"s";
+    wrap.appendChild(b);
+  }
+}
+
+function bookIconHTML(size){
+  return `<img src="assets/logo-book.png" alt="" style="display:block;width:${size}px;height:auto;">`;
+}
+function renderLogoMark(){
+  document.getElementById("logoMark").innerHTML = `
+    <img src="assets/logo-full.png" alt="Locked Inn" style="display:block;width:170px;height:auto;">
+  `;
+}
+function topbarHTML(){
+  return `<div class="brand" style="margin-bottom:18px;">${bookIconHTML(44)}<span>Locked Inn</span></div>`;
+}
+
+/* ================= ROUTING ================= */
+const APP_ROUTES = ["dashboard","flashcards","notes","papers","tutor","generator"];
+function goto(route){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(route).classList.add("active");
+  document.getElementById("navbar").style.display = APP_ROUTES.includes(route) ? "flex" : "none";
+  document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.dataset.route===route));
+  if(route==="home") setHomeContent();
+  if(route==="dashboard") renderDashboard();
+  if(route==="flashcards") renderFlashcards();
+  if(route==="notes") renderNotes();
+  if(route==="papers") renderPapers();
+  if(route==="tutor") renderTutor();
+  if(route==="generator") renderGenerator();
+}
+
+function setHomeContent(){
+  const h = new Date().getHours();
+  const period = h<12?"morning":h<18?"afternoon":"evening";
+  document.getElementById("homeGreeting").textContent = `Good ${period}, ${profile?.name || "there"} 👋`;
+  document.getElementById("homeSub").textContent = "Ready to make today count?";
+  const dayIndex = new Date().getDate() % QUOTES.length;
+  document.getElementById("quoteText").textContent = QUOTES[dayIndex];
+
+  const openTodos = data.todos.filter(t=>!t.done).length;
+  const nextExam = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date))[0];
+
+  document.getElementById("homeExtra").innerHTML = `
+    <div class="shortcut-row">
+      <div class="shortcut-tile" onclick="goto('flashcards')">
+        <div class="sic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4C7A0C" stroke-width="2"><rect x="4" y="6" width="14" height="10" rx="2"/><rect x="7" y="9" width="14" height="10" rx="2"/></svg></div>
+        <span>Flashcards</span>
+      </div>
+      <div class="shortcut-tile" onclick="goto('notes')">
+        <div class="sic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4C7A0C" stroke-width="2"><path d="M5 3h11l3 3v15H5z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></div>
+        <span>Notes</span>
+      </div>
+      <div class="shortcut-tile" onclick="goto('tutor')">
+        <div class="sic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4C7A0C" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></div>
+        <span>AI Tutor</span>
+      </div>
+    </div>
+    ${nextExam ? `
+    <div class="nextup">
+      <div class="nu-dot"></div>
+      <div><b>${escapeHtml(nextExam.subject)}</b><span>${openTodos} open to-do${openTodos===1?'':'s'} waiting for you</span></div>
+      <div class="nu-days">${daysUntil(nextExam.date)}d</div>
+    </div>` : `
+    <div class="nextup">
+      <div class="nu-dot"></div>
+      <div><b>No exams on the calendar</b><span>Add one from your dashboard to get reminders</span></div>
+    </div>`}
+    <p class="eyebrow" style="margin:20px 0 10px;">Spread the word</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" style="flex:1;" onclick="shareApp()">Share Locked Inn</button>
+      <button class="btn secondary" style="flex:1;" onclick="shareMyPDFs()">Share my PDFs</button>
+    </div>
+  `;
+}
+
+async function shareApp(){
+  const shareData = { title: "Locked Inn", text: "Check out Locked Inn — free study app with AI flashcards, notes, past papers & a tutor 📚", url: "https://locked-inn1.netlify.app" };
+  if(navigator.share){ try{ await navigator.share(shareData); }catch(e){} }
+  else { try{ await navigator.clipboard.writeText(shareData.text + " " + shareData.url); toast("Share link copied!"); }catch(e){ toast("Couldn't share"); } }
+}
+
+function shareMyPDFs(){
+  goto('generator');
+  setTimeout(()=>{
+    document.getElementById('genLibraryList')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 50);
+}
+
+/* ================= AUTH FLOW (Firebase email/password) ================= */
+let authMode = "signup";
+
+function showAuthError(msg){
+  const el = document.getElementById("authError");
+  el.textContent = msg; el.style.display = "block";
+}
+
+function toggleAuthMode(){
+  authMode = authMode === "signup" ? "login" : "signup";
+  document.getElementById("authError").style.display = "none";
+  document.getElementById("authNotice").style.display = "none";
+  document.getElementById("emailInput").value = "";
+  document.getElementById("passwordInput").value = "";
+  if(authMode === "login"){
+    document.getElementById("authEyebrow").textContent = "Welcome back";
+    document.getElementById("authTitle").textContent = "Log in";
+    document.getElementById("authSub").textContent = "Enter your email and password to pick up right where you left off.";
+    document.getElementById("nameField").style.display = "none";
+    document.getElementById("authBtn").textContent = "Log in";
+    document.getElementById("authToggle").textContent = "New here? Create an account";
+    document.getElementById("forgotLink").style.display = "block";
+  }else{
+    document.getElementById("authEyebrow").textContent = "Welcome";
+    document.getElementById("authTitle").textContent = "Create your account";
+    document.getElementById("authSub").textContent = "One-time sign up — we'll keep every deck, note and streak safe for you, wherever you log in.";
+    document.getElementById("nameField").style.display = "";
+    document.getElementById("authBtn").textContent = "Create account";
+    document.getElementById("authToggle").textContent = "Already have an account? Log in";
+    document.getElementById("forgotLink").style.display = "none";
+  }
+}
+
+async function forgotPassword(){
+  const email = document.getElementById("emailInput").value.trim();
+  document.getElementById("authError").style.display = "none";
+  document.getElementById("authNotice").style.display = "none";
+  if(!email){
+    showAuthError("Enter your email above first, then tap 'Forgot your password?'");
+    return;
+  }
+  try{
+    await window.firebaseResetPassword(email);
+    const notice = document.getElementById("authNotice");
+    notice.textContent = "Check your email — we've sent you a link to reset your password. (Look in spam too, just in case.)";
+    notice.style.display = "block";
+  }catch(e){
+    showAuthError(friendlyAuthError(e));
+  }
+}
+
+function friendlyAuthError(e){
+  const code = e.code || "";
+  if(code.includes("email-already-in-use")) return "That email's already registered — try logging in instead.";
+  if(code.includes("invalid-email")) return "That email doesn't look right.";
+  if(code.includes("weak-password")) return "Password needs to be at least 6 characters.";
+  if(code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Email or password doesn't match our records.";
+  if(code.includes("too-many-requests")) return "Too many attempts — wait a moment and try again.";
+  return e.message || "Something went wrong — try again.";
+}
+
+async function submitAuth(){
+  const email = document.getElementById("emailInput").value.trim();
+  const password = document.getElementById("passwordInput").value;
+  const name = document.getElementById("nameInput").value.trim();
+  document.getElementById("authError").style.display = "none";
+  if(!email || !password){ showAuthError("Enter an email and password."); return; }
+  if(authMode === "signup" && password.length < 6){ showAuthError("Password needs to be at least 6 characters."); return; }
+  const btn = document.getElementById("authBtn");
+  const label = btn.textContent;
+  btn.textContent = authMode === "signup" ? "Creating account…" : "Logging in…";
+  btn.disabled = true;
+  try{
+    if(authMode === "signup"){
+      await window.firebaseSignUp(email, password, name || "Student");
+    }else{
+      await window.firebaseSignIn(email, password);
+    }
+    /* navigation + data loading happens in the onAuthStateChanged listener */
+  }catch(e){
+    showAuthError(friendlyAuthError(e));
+    btn.textContent = label; btn.disabled = false;
+  }
+}
+
+async function loadCloudData(user){
+  try{
+    const cloudData = await window.firestoreLoad(user.uid);
+    if(cloudData){
+      profile = cloudData.profile || { name: user.displayName || "Student", email: user.email };
+      data = cloudData.data || { todos:[], reminders:[], notes:[], decks:[], library:[] };
+      if(!data.library) data.library = [];
+      chat = cloudData.chat || [];
+    }else{
+      profile = { name: user.displayName || "Student", email: user.email };
+      data = { todos:[], reminders:[], notes:[], decks:[], library:[] };
+      chat = [];
+      await window.firestoreSave(user.uid, { profile, data, chat });
+    }
+  }catch(e){
+    console.error("Couldn't load cloud data", e);
+    profile = { name: user.displayName || "Student", email: user.email };
+  }
+}
+
+async function cloudOrLocalSave(field, value){
+  if(currentUser){
+    try{ await window.firestoreSave(currentUser.uid, { [field]: value }); }catch(e){ console.error(e); }
+  }else{
+    await sSet(field === "data" ? "student-data" : field, value);
+  }
+}
+
+/* ================= DASHBOARD ================= */
+async function persist(){ await cloudOrLocalSave("data", data); }
+
+function daysUntil(dateStr){
+  const d = new Date(dateStr+"T00:00:00"); const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((d-now)/86400000);
+}
+
+function renderDashboard(){
+  autoGenerateReminderTodos();
+  const doneCount = data.todos.filter(t=>t.done).length;
+  const upcoming = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  document.getElementById("dashboardPad").innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <img src="assets/logo-book.png" alt="" style="display:block;flex:none;width:52px;height:auto;">
+      <div>
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:14px;letter-spacing:.04em;">LOCKED INN</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);">Student dashboard</div>
+      </div>
+    </div>
+    <p class="eyebrow">Dashboard</p>
+    <h1 class="pagetitle">Welcome back, ${profile?.name||"Student"}</h1>
+    <p class="sub">Here's what's on your plate today.</p>
+    <div class="stat-row">
+      <div class="stat"><b>${data.todos.length}</b><span>To-dos</span></div>
+      <div class="stat"><b>${doneCount}</b><span>Completed</span></div>
+      <div class="stat"><b>${data.reminders.length}</b><span>Exams</span></div>
+    </div>
+
+    <div class="section-title"><h3>Exam reminders</h3><button onclick="openReminderModal()">+ Add</button></div>
+    <div class="card" id="remList">
+      ${upcoming.length ? upcoming.map(r=>`
+        <div class="reminder-row">
+          <div class="rdot"></div>
+          <div class="rmeta"><b>${escapeHtml(r.subject)}</b><span>${formatDate(r.date)}</span></div>
+          <div class="rcount">${daysUntil(r.date)}d</div>
+          <button class="del" onclick="removeReminder('${r.id}')">✕</button>
+        </div>`).join("") : `<div class="empty">No exams added yet. Add one so Locked Inn can start reminding you.</div>`}
+    </div>
+
+    <div class="section-title"><h3>To-do checklist</h3><button onclick="openTodoModal()">+ Add</button></div>
+    <div class="card" id="todoList">
+      ${data.todos.length ? data.todos.map(t=>`
+        <div class="todo-row ${t.done?'done':''}">
+          <div class="chk ${t.done?'done':''}" onclick="toggleTodo('${t.id}')">${t.done?'✓':''}</div>
+          <span>${escapeHtml(t.text)}</span>
+          <button class="del" onclick="removeTodo('${t.id}')">✕</button>
+        </div>`).join("") : `<div class="empty">Nothing on your list. Add a task to get moving.</div>`}
+    </div>
+
+    <p class="eyebrow" style="margin:20px 0 10px;">Spread the word</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" style="flex:1;" onclick="shareApp()">Share Locked Inn</button>
+      <button class="btn secondary" style="flex:1;" onclick="shareMyPDFs()">Share my PDFs</button>
+    </div>
+
+    <button class="btn ghost" style="margin-top:8px;" onclick="logOut()">Log out</button>
+  `;
+}
+function logOut(){
+  showModal(`
+    <h3>Log out?</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">Your notes, decks and reminders stay saved to your account — log back in with your email any time to pick up where you left off.</p>
+    <button class="btn" onclick="doLogOut()">Log out</button>
+  `);
+}
+async function doLogOut(){
+  try{ await window.firebaseSignOut(); }catch(e){}
+  closeModal();
+  document.getElementById("emailInput").value = "";
+  document.getElementById("passwordInput").value = "";
+  document.getElementById("nameInput").value = "";
+  /* goto("auth") happens automatically via the onAuthStateChanged listener */
+}
+
+function autoGenerateReminderTodos(){
+  let changed = false;
+  data.reminders.forEach(r=>{
+    const d = daysUntil(r.date);
+
+    // auto revision to-do within the final 3 days
+    if(d>=0 && d<=3){
+      const already = data.todos.some(t=>t.autoFor===r.id);
+      if(!already){
+        data.todos.unshift({id:crypto.randomUUID(), text:`Revise ${r.subject} — exam in ${d} day${d===1?'':'s'}`, done:false, autoFor:r.id});
+        changed = true;
+      }
+    }
+
+    // distinct notifications: 2 days before, and 1 day before
+    if(d===2 && !r.notified2){
+      notifyUser(`2 days until ${r.subject}`, `Your exam is in 2 days — good time to start final revision.`);
+      r.notified2 = true; changed = true;
+    }
+    if(d===1 && !r.notified1){
+      notifyUser(`Tomorrow: ${r.subject}`, `Your exam is tomorrow — one more focused review session tonight.`);
+      r.notified1 = true; changed = true;
+    }
+  });
+  if(changed) persist();
+}
+
+function notifyUser(title, body){
+  if(!("Notification" in window)) return;
+  if(Notification.permission === "granted"){ new Notification(title, {body}); }
+}
+
+function openReminderModal(){
+  showModal(`
+    <h3>Add exam reminder</h3>
+    <div class="field"><label class="field-label">Subject</label><input type="text" id="rSubject" placeholder="e.g. Chemistry Paper 1"></div>
+    <div class="field"><label class="field-label">Date</label><input type="date" id="rDate"></div>
+    <button class="btn" onclick="saveReminder()">Save reminder</button>
+  `);
+}
+async function saveReminder(){
+  const subject = document.getElementById("rSubject").value.trim();
+  const date = document.getElementById("rDate").value;
+  if(!subject || !date){ toast("Add a subject and date"); return; }
+  data.reminders.push({id:crypto.randomUUID(), subject, date});
+  await persist(); closeModal(); renderDashboard();
+  if("Notification" in window && Notification.permission==="default"){ Notification.requestPermission(); }
+}
+async function removeReminder(id){ data.reminders = data.reminders.filter(r=>r.id!==id); await persist(); renderDashboard(); }
+
+function openTodoModal(){
+  showModal(`
+    <h3>Add to-do</h3>
+    <div class="field"><input type="text" id="tText" placeholder="What do you need to do?"></div>
+    <button class="btn" onclick="saveTodo()">Add task</button>
+  `);
+}
+async function saveTodo(){
+  const text = document.getElementById("tText").value.trim();
+  if(!text){ return; }
+  data.todos.unshift({id:crypto.randomUUID(), text, done:false});
+  await persist(); closeModal(); renderDashboard();
+}
+async function toggleTodo(id){ const t=data.todos.find(x=>x.id===id); t.done=!t.done; await persist(); renderDashboard(); }
+async function removeTodo(id){ data.todos = data.todos.filter(t=>t.id!==id); await persist(); renderDashboard(); }
+
+/* ================= FLASHCARDS ================= */
+function renderFlashcards(){
+  if(currentDeck){ renderDeckStudy(); return; }
+  document.getElementById("flashPad").innerHTML = `
+    ${topbarHTML()}
+    <p class="eyebrow">Flashcards</p>
+    <h1 class="pagetitle">Create a deck</h1>
+    <p class="sub">Tell us the subject and topics — Locked Inn's AI will build the cards.</p>
+    <div class="card">
+      <div class="field"><label class="field-label">Subject</label><input type="text" id="fSubject" placeholder="e.g. Biology"></div>
+      <div class="field"><label class="field-label">Scope / subtopics</label><textarea id="fScope" placeholder="e.g. Cell structure, mitosis, diffusion vs osmosis"></textarea></div>
+      <button class="btn" id="genBtn" onclick="generateDeck()">✦ Generate flashcards</button>
+    </div>
+    <div class="section-title"><h3>Your decks</h3>${data.decks.length ? `<button onclick="confirmWipeDecks()">Clear all</button>` : ''}</div>
+    <div class="deck-list">
+      ${data.decks.length ? data.decks.map(d=>`
+        <div class="deck" onclick="openDeck('${d.id}')">
+          <div class="deck-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4C7A0C" stroke-width="2"><rect x="4" y="6" width="14" height="10" rx="2"/><rect x="7" y="9" width="14" height="10" rx="2"/></svg></div>
+          <div><b>${escapeHtml(d.subject)}</b><span>${d.cards.length} cards</span></div>
+        </div>`).join("") : `<div class="empty">No decks yet — generate your first one above.</div>`}
+    </div>
+  `;
+}
+function confirmWipeDecks(){
+  showModal(`
+    <h3>Clear all flashcards?</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">This deletes every deck you've made. It can't be undone.</p>
+    <button class="btn" style="background:var(--coral);color:#fff;box-shadow:none;" onclick="wipeAllDecks()">Yes, delete everything</button>
+  `);
+}
+async function wipeAllDecks(){
+  data.decks = [];
+  await persist();
+  closeModal();
+  toast("All flashcard decks cleared");
+  renderFlashcards();
+}
+
+async function generateDeck(){
+  const subject = document.getElementById("fSubject").value.trim();
+  const scope = document.getElementById("fScope").value.trim();
+  if(!subject || !scope){ toast("Add a subject and scope first"); return; }
+  const btn = document.getElementById("genBtn");
+  btn.textContent = "Generating…"; btn.disabled = true;
+  try{
+    const prompt = `Create 8 flashcards for a student studying "${subject}", covering these subtopics: ${scope}. Respond ONLY with valid JSON, no markdown, no preamble, in this exact shape: {"cards":[{"front":"question or term","back":"concise answer or definition"}]}`;
+    const res = await fetch("/.netlify/functions/ai",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt })
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error || "Generation failed");
+    const clean = (json.text||"").replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    const deck = {id:crypto.randomUUID(), subject, scope, cards:parsed.cards};
+    data.decks.unshift(deck);
+    await persist();
+    toast("Deck created");
+    openDeck(deck.id);
+  }catch(e){
+    toast("Couldn't generate cards — try again");
+  }
+  btn.textContent = "✦ Generate flashcards"; btn.disabled = false;
+}
+
+function openDeck(id){ currentDeck = data.decks.find(d=>d.id===id); cardIndex=0; flipped=false; renderFlashcards(); }
+function closeDeck(){ currentDeck=null; renderFlashcards(); }
+
+function renderDeckStudy(){
+  const c = currentDeck.cards[cardIndex];
+  document.getElementById("flashPad").innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <button class="back-link" style="margin-bottom:0;" onclick="closeDeck()">‹ All decks</button>
+      <button class="del" title="Delete card" onclick="confirmDeleteCard()">✕</button>
+    </div>
+    <p class="eyebrow">${escapeHtml(currentDeck.subject)}</p>
+    <h1 class="pagetitle">Study deck</h1>
+    <div class="flip-stage">
+      <div class="flip-card ${flipped?'flipped':''}" id="flipCard" onclick="flipCard()">
+        <div class="face front">${escapeHtml(c.front)}</div>
+        <div class="face back">${escapeHtml(c.back)}</div>
+      </div>
+    </div>
+    <div class="card-nav">
+      <button onclick="prevCard()">‹</button>
+      <div class="card-progress">${cardIndex+1} / ${currentDeck.cards.length} — tap card to flip</div>
+      <button onclick="nextCard()">›</button>
+    </div>
+  `;
+}
+function flipCard(){ flipped=!flipped; document.getElementById("flipCard").classList.toggle("flipped"); }
+function nextCard(){ flipped=false; cardIndex=(cardIndex+1)%currentDeck.cards.length; renderDeckStudy(); }
+function prevCard(){ flipped=false; cardIndex=(cardIndex-1+currentDeck.cards.length)%currentDeck.cards.length; renderDeckStudy(); }
+
+function confirmDeleteCard(){
+  showModal(`
+    <h3>Delete this card?</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">This removes just this card from the deck. It can't be undone.</p>
+    <button class="btn" style="background:var(--coral);color:#fff;box-shadow:none;" onclick="deleteCurrentCard()">Yes, delete it</button>
+  `);
+}
+async function deleteCurrentCard(){
+  currentDeck.cards.splice(cardIndex, 1);
+  await persist();
+  closeModal();
+  if(currentDeck.cards.length === 0){
+    currentDeck = null;
+    toast("Deck is now empty");
+    renderFlashcards();
+    return;
+  }
+  if(cardIndex >= currentDeck.cards.length){
+    cardIndex = currentDeck.cards.length - 1;
+  }
+  flipped = false;
+  renderDeckStudy();
+}
+
+/* ================= NOTES ================= */
+function renderNotes(){
+  document.getElementById("notesPad").innerHTML = `
+    ${topbarHTML()}
+    <p class="eyebrow">Notes</p>
+    <h1 class="pagetitle">Your notes</h1>
+    <p class="sub">Keep everything in one calm place.</p>
+    <button class="btn" style="margin-bottom:18px;" onclick="openNoteModal()">+ New note</button>
+    ${data.notes.length ? data.notes.map(n=>`
+      <div class="note" onclick="viewNote('${n.id}')">
+        <b>${escapeHtml(n.title)}</b>
+        <p>${escapeHtml(n.body)}</p>
+        <div class="nd">${formatDate(n.date, true)}</div>
+      </div>`).join("") : `<div class="empty">No notes yet — jot down your first one.</div>`}
+  `;
+}
+function openNoteModal(existing){
+  const n = existing || {title:"",body:""};
+  showModal(`
+    <h3>${existing?'Edit note':'New note'}</h3>
+    <div class="field"><input type="text" id="nTitle" placeholder="Title" value="${existing?escapeAttr(n.title):''}"></div>
+    <div class="field"><textarea id="nBody" placeholder="Write your note..." style="min-height:140px;">${existing?escapeHtml(n.body):''}</textarea></div>
+    <button class="btn" onclick="saveNote('${existing?existing.id:''}')">Save note</button>
+    ${existing?`<button class="btn ghost" style="margin-top:10px;" onclick="deleteNote('${existing.id}')">Delete</button>`:''}
+  `);
+}
+function viewNote(id){ openNoteModal(data.notes.find(n=>n.id===id)); }
+async function saveNote(id){
+  const title = document.getElementById("nTitle").value.trim() || "Untitled";
+  const body = document.getElementById("nBody").value.trim();
+  if(id){ const n = data.notes.find(x=>x.id===id); n.title=title; n.body=body; n.date=Date.now(); }
+  else{ data.notes.unshift({id:crypto.randomUUID(), title, body, date:Date.now()}); }
+  await persist(); closeModal(); renderNotes();
+}
+async function deleteNote(id){ data.notes = data.notes.filter(n=>n.id!==id); await persist(); closeModal(); renderNotes(); }
+
+/* ================= PAST PAPERS ================= */
+const STANMORE = {
+  "Physical Science": {12:"physical-science-grade-12", 11:"physical-science-grade-11-exam-papers", 10:"physical-science-grade-10-2"},
+  "Mathematics": {12:"maths-exam-papers-grade-12", 11:"maths-grade-11", 10:"maths-grade-10-exam-papers", 9:"z-grade-99/maths-grade-9", 8:"z-grade-8/maths-grade-8"},
+  "Maths Literacy": {12:"maths-literacy-grade-12-exam-papers", 11:"maths-literacy-grade-11", 10:"maths-literacy-grade-10"},
+  "Information Technology": {12:"information-technology-grade-12", 11:"information-technology-grade-11", 10:"it-grade-10-exam-papers"},
+  "Accounting": {12:"exam-papers-and-study-notes-for-accounting", 11:"accounting-grade-11-exam-papers", 10:"accounting-grade-10"},
+  "English": {12:"englishgrade-12", 11:"english-grade-11", 10:"english-grade-10-exam-papers"},
+  "Life Sciences": {12:"life-sciencesgrade-12", 11:"life-sciencegrade-11", 10:"life-science-grade-10"},
+  "Geography": {12:"geographygrade-12", 11:"geographygrade-11", 10:"geographygrade-10"},
+  "Business Studies": {12:"business-studies-grade-12", 11:"business-studies-grade-11", 10:"business-studies-10"},
+  "Afrikaans": {12:"afrikaans-grade-12", 11:"afrikaans-grade-11", 10:"afrikaans-grade-10"},
+  "IsiZulu": {12:"isizulu-grade-12", 11:"isizulu-grade-11", 10:"isizulu-grade-10"},
+  "Life Orientation": {12:"life-orientationgrade-12", 11:"life-orientation-grade-11", 10:"life-orientation-grade-10"},
+  "Economics": {12:"economics-12", 11:"economics-11", 10:"economics-10"},
+  "History": {12:"history-exam-papersgrade-12", 11:"history-grade-11", 10:"history-grade-10"},
+  "IsiXhosa": {12:"isixhosa-grade-12"}
+};
+const STANMORE_QUICK = ["Physical Science","Mathematics","Life Sciences","Accounting"];
+
+function renderPapers(){
+  const prevSubject = document.getElementById("pSubject")?.value;
+  const prevGrade = document.getElementById("pGrade")?.value || "12";
+  document.getElementById("papersPad").innerHTML = `
+    ${topbarHTML()}
+    <p class="eyebrow">Past papers</p>
+    <h1 class="pagetitle">Find a past paper</h1>
+    <p class="sub">Straight from Stanmore Physics — free South African past papers for grades 10 to 12.</p>
+    <div class="card">
+      <div class="field"><label class="field-label">Subject</label>
+        <select id="pSubject">${Object.keys(STANMORE).map(s=>`<option value="${escapeAttr(s)}" ${s===prevSubject?'selected':''}>${escapeHtml(s)}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label class="field-label">Grade</label>
+        <select id="pGrade" onchange="renderPapers()">
+          <option value="12" ${prevGrade==="12"?'selected':''}>Grade 12</option>
+          <option value="11" ${prevGrade==="11"?'selected':''}>Grade 11</option>
+          <option value="10" ${prevGrade==="10"?'selected':''}>Grade 10</option>
+          <option value="9" ${prevGrade==="9"?'selected':''}>Grade 9</option>
+          <option value="8" ${prevGrade==="8"?'selected':''}>Grade 8</option>
+        </select>
+      </div>
+      <button class="btn mint" onclick="openStanmore()">📄 Open on Stanmore Physics</button>
+    </div>
+    <div class="section-title"><h3>Quick links · Grade 12</h3></div>
+    ${STANMORE_QUICK.map(s=>`
+      <a class="paper-link" href="https://stanmorephysics.com/${STANMORE[s][12]}/" target="_blank" rel="noopener">
+        <div class="paper-ic">📄</div><div><b>${escapeHtml(s)}</b><span>Past exam papers &amp; memos</span></div>
+      </a>`).join("")}
+    <a class="paper-link" href="https://stanmorephysics.com/" target="_blank" rel="noopener">
+      <div class="paper-ic">🔗</div><div><b>Browse the full site</b><span>All subjects, grades 8–12</span></div>
+    </a>
+  `;
+}
+function openStanmore(){
+  const subject = document.getElementById("pSubject").value;
+  const grade = document.getElementById("pGrade").value;
+  const slug = STANMORE[subject]?.[grade];
+  if(!slug){ toast(`${subject} isn't listed for grade ${grade} on Stanmore — try grade 12`); return; }
+  window.open(`https://stanmorephysics.com/${slug}/`, "_blank", "noopener");
+}
+
+/* ================= AI TUTOR ================= */
+function renderTutor(){
+  document.getElementById("tutorPad").innerHTML = `
+    ${topbarHTML()}
+    <p class="eyebrow" style="margin-top:2px;">AI Tutor</p>
+    <div class="chatlog" id="chatlog"></div>
+    <div id="imgPreviewRow"></div>
+    <input type="file" id="imgFileInput" accept="image/*" style="display:none;" onchange="onImagePicked(event)">
+    <div class="chatbar">
+      <button class="sendbtn" style="background:var(--violet-tint);color:var(--violet-deep);" onclick="document.getElementById('imgFileInput').click()">📷</button>
+      <input type="text" id="chatInput" placeholder="Ask me anything, or attach a photo…" onkeydown="if(event.key==='Enter')sendChat();">
+      <button class="sendbtn" onclick="sendChat()">➤</button>
+    </div>
+  `;
+  renderChatLog();
+  renderImagePreview();
+}
+
+let pendingImage = null; // { mimeType, data, previewUrl }
+
+function onImagePicked(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 1024;
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale); height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+      pendingImage = { mimeType: "image/jpeg", data: dataUrl.split(",")[1], previewUrl: dataUrl };
+      renderImagePreview();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = "";
+}
+
+function renderImagePreview(){
+  const row = document.getElementById("imgPreviewRow");
+  if(!row) return;
+  if(!pendingImage){ row.innerHTML = ""; return; }
+  row.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--violet-tint);border-radius:12px;padding:8px 10px;margin-bottom:8px;">
+      <img src="${pendingImage.previewUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;">
+      <span style="font-size:12.5px;color:var(--violet-deep);flex:1;">Photo attached</span>
+      <button class="del" onclick="removePendingImage()">✕</button>
+    </div>
+  `;
+}
+function removePendingImage(){ pendingImage = null; renderImagePreview(); }
+
+function renderChatLog(){
+  const log = document.getElementById("chatlog");
+  if(!log) return;
+  if(chat.length===0){
+    log.innerHTML = `<div class="msg bot">Hey ${profile?.name||''}! I'm your study tutor. Ask me to explain a topic, quiz you, or help plan revision — I'll also point you to useful YouTube videos.</div>`;
+    return;
+  }
+  log.innerHTML = chat.map(m=>{
+    if(m.role==="user"){
+      const img = m.image ? `<img src="${m.image}" style="max-width:160px;border-radius:12px;display:block;margin-bottom:6px;">` : "";
+      return `<div class="msg user">${img}${m.text ? escapeHtml(m.text) : ""}</div>`;
+    }
+    let chips = (m.videos||[]).map(v=>`<a class="yt-chip" target="_blank" href="https://www.youtube.com/results?search_query=${encodeURIComponent(v)}">▶ ${escapeHtml(v)}</a>`).join("");
+    return `<div class="msg bot">${escapeHtml(m.text)}${chips?`<div style="margin-top:8px;">${chips}</div>`:''}</div>`;
+  }).join("");
+  log.scrollTop = log.scrollHeight;
+}
+async function requestTutorReply(body){
+  const res = await fetch("/.netlify/functions/ai",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if(!res.ok) throw new Error(json.error || "Tutor request failed");
+  const raw = (json.text || "").trim();
+  if(!raw) throw new Error("Empty tutor response");
+  const clean = raw.replace(/```json|```/g,"").trim();
+  try{
+    const parsed = JSON.parse(clean);
+    return { reply: parsed.reply || raw, youtube_queries: parsed.youtube_queries || [] };
+  }catch(e){
+    /* not valid JSON, but we still got real text back — show it rather than error */
+    return { reply: raw, youtube_queries: [] };
+  }
+}
+
+async function sendChat(){
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if(!text && !pendingImage) return;
+  const imageToSend = pendingImage;
+  chat.push({role:"user", text, image: imageToSend?.previewUrl});
+  input.value=""; pendingImage = null; renderImagePreview();
+  renderChatLog();
+  document.getElementById("chatlog").insertAdjacentHTML("beforeend", `<div class="typing" id="typingRow"><i></i><i></i><i></i></div>`);
+  document.getElementById("chatlog").scrollTop = 999999;
+  try{
+    const history = chat.slice(-8).map(m=> m.role==="user" ? `Student: ${m.text}${m.image?' [attached a photo]':''}` : `Tutor: ${m.text}`).join("\\n");
+    const imageNote = imageToSend ? "The student also attached a photo — look at it carefully (it might be a homework question, exam question, or textbook page) and help them with what's shown." : "";
+    const prompt = `You are a warm, encouraging AI study tutor for a student. Conversation so far:\\n${history}\\n\\n${imageNote}\\nReply to the student's last message helpfully and concisely (max ~150 words). Then suggest 1-3 short, specific YouTube search phrases that would help them understand this topic. Respond ONLY with valid JSON, no markdown: {"reply":"...", "youtube_queries":["...","..."]}`;
+    const body = { prompt };
+    if(imageToSend){ body.image = { mimeType: imageToSend.mimeType, data: imageToSend.data }; }
+    let result;
+    try{
+      result = await requestTutorReply(body);
+    }catch(e){
+      await new Promise(r => setTimeout(r, 800));
+      result = await requestTutorReply(body);
+    }
+    chat.push({role:"bot", text:result.reply, videos:result.youtube_queries});
+  }catch(e){
+    chat.push({role:"bot", text:"Hmm, I couldn't get through just then — give it one more try in a moment.", videos:[]});
+  }
+  document.getElementById("typingRow")?.remove();
+  /* strip images before saving so cloud/local storage doesn't bloat with photo data */
+  const toPersist = chat.slice(-40).map(m => {
+    if(!m.image) return m;
+    const { image, ...rest } = m;
+    return { ...rest, text: m.text || "[photo]" };
+  });
+  await cloudOrLocalSave("chat", toPersist);
+  renderChatLog();
+}
+
+/* ================= STUDY GENERATOR ================= */
+let genType = "summary";
+let genData = null; // { type, subject, parsed }
+
+const GEN_TYPES = [
+  { id:"summary", label:"Summary", icon:"📄" },
+  { id:"flashcards", label:"Q & A", icon:"🗂️" },
+  { id:"cheatsheet", label:"Cheat-sheet", icon:"⚡" },
+];
+
+function renderGenerator(){
+  document.getElementById("generatorPad").innerHTML = `
+    ${topbarHTML()}
+    <p class="eyebrow">Study Generator</p>
+    <h1 class="pagetitle">Make study material</h1>
+    <p class="sub">Pick a type, enter your topic, and easily download a PDF.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+      ${GEN_TYPES.map(t=>`
+        <div class="gen-tile ${genType===t.id?'selected':''}" data-type="${t.id}" onclick="selectGenType('${t.id}')">
+          <div class="gt-ic">${t.icon}</div>
+          <span>${t.label}</span>
+        </div>`).join("")}
+    </div>
+    <div class="card">
+      <div class="field"><label class="field-label">Subject</label><input type="text" id="genSubject" placeholder="e.g. Biology"></div>
+      <div class="field"><label class="field-label">Topic or scope or notes</label><textarea id="genScope" placeholder="e.g. Cell structure, mitosis, diffusion vs osmosis"></textarea></div>
+      <button class="btn" id="genMakeBtn" onclick="generateMaterial()">✦ Generate PDF</button>
+    </div>
+    <div id="genResult"></div>
+    <div class="section-title"><h3>My Library</h3><button id="genLibraryClear" style="display:none;" onclick="confirmClearLibrary()">Clear all</button></div>
+    <div class="deck-list" id="genLibraryList"></div>
+  `;
+  renderLibrarySection();
+}
+
+function selectGenType(id){
+  genType = id;
+  genData = null;
+  document.getElementById("genResult").innerHTML = "";
+  document.querySelectorAll("#generatorPad .gen-tile").forEach(el=>{
+    el.classList.toggle("selected", el.dataset.type===id);
+  });
+}
+
+async function generateMaterial(){
+  const subject = document.getElementById("genSubject").value.trim();
+  const scope = document.getElementById("genScope").value.trim();
+  if(!subject || !scope){ toast("Add a subject and topic first"); return; }
+  const btn = document.getElementById("genMakeBtn");
+  const label = btn.textContent;
+  genData = null;
+  document.getElementById("genResult").innerHTML = "";
+  btn.textContent = "Generating…"; btn.disabled = true;
+  try{
+    let prompt;
+    if(genType === "summary"){
+      prompt = `Create a concise study summary for a student studying "${subject}" on: ${scope}. Each section body should be 3-6 short bullet points, not paragraphs. Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","points":["...","..."]}]}`;
+    }else if(genType === "cheatsheet"){
+      prompt = `Create a condensed exam cheat-sheet for "${subject}" on: ${scope}. Short punchy points. Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","body":"..."}]}`;
+    }else{
+      prompt = `Create 10 flashcards for "${subject}" on: ${scope}. Return ONLY valid JSON, no markdown: {"title":"...","cards":[{"front":"...","back":"..."}]}`;
+    }
+    const res = await fetch("/.netlify/functions/ai",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt })
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error || "Generation failed");
+    const clean = (json.text||"").replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    genData = { type: genType, subject, parsed };
+    const typeLabel = (GEN_TYPES.find(t=>t.id===genType)||{}).label || genType;
+    document.getElementById("genResult").innerHTML = `
+      <div class="gen-result">
+        <h3>${escapeHtml(parsed.title || subject)}</h3>
+        <p class="sub" style="margin:0 0 14px;">${typeLabel} — ready to download.</p>
+        <button class="btn" onclick="downloadPDF()">⤓ Download PDF</button>
+      </div>
+    `;
+    data.library.unshift({
+      id: crypto.randomUUID(),
+      type: genType,
+      title: parsed.title || subject,
+      subject, scope,
+      content: parsed,
+      created: Date.now()
+    });
+    await persist();
+    renderLibrarySection();
+  }catch(e){
+    toast("Couldn't generate that — try again");
+  }
+  btn.textContent = label; btn.disabled = false;
+}
+
+let LOGO_CACHE = null;
+async function getLogoDataURL(){
+  if(LOGO_CACHE) return LOGO_CACHE;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = img.width; c.height = img.height;
+      c.getContext("2d").drawImage(img, 0, 0);
+      LOGO_CACHE = c.toDataURL("image/png");
+      resolve(LOGO_CACHE);
+    };
+    img.onerror = () => resolve(null);
+    img.src = "assets/logo-book.png";
+  });
+}
+
+function slugifyTitle(str){
+  return (str || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+async function buildPDFDoc({ type, subject, parsed }){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 15;
+  const contentWidth = 180;
+  const maxY = 270;
+
+  doc.setFillColor(168,230,43); // --violet (lime)
+  doc.rect(0,0,pageWidth,28,"F");
+  doc.setTextColor(27,29,22); // --frame-dark
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(18);
+  doc.text("Locked Inn", marginX, 16);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(10);
+  const typeLabel = (GEN_TYPES.find(t=>t.id===type)||{}).label || type;
+  doc.text(`${typeLabel} — ${subject}`, marginX, 23);
+
+  const logo = await getLogoDataURL();
+  if(logo){
+    try{ doc.addImage(logo, "PNG", 170, 6, 30, 16); }
+    catch(e){ console.error("Couldn't render PDF logo", e); }
+  }
+
+  let y = 42;
+  doc.setTextColor(27,30,43); // --ink
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(16);
+  const titleLines = doc.splitTextToSize(parsed.title || subject, contentWidth);
+  doc.text(titleLines, marginX, y);
+  y += titleLines.length*7 + 8;
+
+  function ensureSpace(neededHeight){
+    if(y + neededHeight > maxY){
+      doc.addPage();
+      y = 20;
+    }
+  }
+
+  if(type === "flashcards"){
+    (parsed.cards || []).forEach((c, i) => {
+      const qLines = doc.splitTextToSize(`${i+1}. Q: ${c.front || ""}`, contentWidth);
+      const aLines = doc.splitTextToSize(`A: ${c.back || ""}`, contentWidth);
+      ensureSpace(qLines.length*6 + aLines.length*6 + 10);
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(12);
+      doc.setTextColor(27,30,43);
+      doc.text(qLines, marginX, y);
+      y += qLines.length*6 + 3;
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(11);
+      doc.setTextColor(90,95,110);
+      doc.text(aLines, marginX, y);
+      y += aLines.length*6 + 10;
+    });
+  }else if(type === "summary"){
+    (parsed.sections || []).forEach(sec => {
+      const hLines = doc.splitTextToSize(sec.heading || "", contentWidth);
+      const pointLines = (sec.points || []).map(p => doc.splitTextToSize(`•  ${p}`, contentWidth));
+      const bodyHeight = pointLines.reduce((sum, lines) => sum + lines.length*6, 0);
+      ensureSpace(hLines.length*6 + bodyHeight + 12);
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(13);
+      doc.setTextColor(76,122,12); // --violet-deep
+      doc.text(hLines, marginX, y);
+      y += hLines.length*6 + 4;
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(11);
+      doc.setTextColor(27,30,43);
+      pointLines.forEach(lines => {
+        ensureSpace(lines.length*6);
+        doc.text(lines, marginX, y);
+        y += lines.length*6 + 2;
+      });
+      y += 8;
+    });
+  }else{
+    (parsed.sections || []).forEach(sec => {
+      const hLines = doc.splitTextToSize(sec.heading || "", contentWidth);
+      const bLines = doc.splitTextToSize(sec.body || "", contentWidth);
+      ensureSpace(hLines.length*6 + bLines.length*6 + 12);
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(13);
+      doc.setTextColor(76,122,12); // --violet-deep
+      doc.text(hLines, marginX, y);
+      y += hLines.length*6 + 4;
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(11);
+      doc.setTextColor(27,30,43);
+      doc.text(bLines, marginX, y);
+      y += bLines.length*6 + 10;
+    });
+  }
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setDrawColor(230,230,230);
+    doc.line(marginX, 280, pageWidth-marginX, 280);
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(9);
+    doc.setTextColor(150,150,150);
+    doc.text("Made with Locked Inn", marginX, 285);
+    doc.setTextColor(76,122,12); // lime
+    doc.text("locked-inn1.netlify.app", pageWidth-marginX, 285, { align:"right" });
+  }
+
+  return doc;
+}
+
+async function downloadPDF(){
+  if(!genData) return;
+  const doc = await buildPDFDoc(genData);
+  const slug = slugifyTitle(genData.parsed.title) || genData.type;
+  doc.save("locked-inn-" + slug + ".pdf");
+}
+
+function renderLibrarySection(){
+  const el = document.getElementById("genLibraryList");
+  if(!el) return;
+  const lib = data.library || [];
+  el.innerHTML = lib.length ? lib.map(item => `
+    <div class="deck" onclick="openLibraryItemMenu('${item.id}')">
+      <div class="deck-ic" style="font-size:18px;">${(GEN_TYPES.find(t=>t.id===item.type)||{}).icon || "📄"}</div>
+      <div style="flex:1;min-width:0;">
+        <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.title)}</b>
+        <span><span style="background:var(--violet-tint);color:var(--violet-deep);border-radius:20px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-right:6px;">${escapeHtml((GEN_TYPES.find(t=>t.id===item.type)||{}).label || item.type)}</span>${formatDate(item.created, true)}</span>
+      </div>
+      <button class="del" title="Share" onclick="event.stopPropagation();shareLibraryItem('${item.id}')">⤴</button>
+      <button class="del" title="Delete" onclick="event.stopPropagation();deleteLibraryItem('${item.id}')">✕</button>
+    </div>`).join("") : `<div class="empty">Nothing generated yet — your PDFs will show up here.</div>`;
+  const clearBtn = document.getElementById("genLibraryClear");
+  if(clearBtn) clearBtn.style.display = lib.length ? "" : "none";
+}
+
+function openLibraryItemMenu(id){
+  const item = (data.library||[]).find(x=>x.id===id);
+  if(!item) return;
+  const typeLabel = (GEN_TYPES.find(t=>t.id===item.type)||{}).label || item.type;
+  showModal(`
+    <h3>${escapeHtml(item.title)}</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 16px;">${escapeHtml(typeLabel)} — ${formatDate(item.created, true)}</p>
+    <button class="btn" style="margin-bottom:10px;" onclick="closeModal();viewLibraryItem('${item.id}')">👁 View</button>
+    <button class="btn secondary" style="margin-bottom:10px;" onclick="closeModal();downloadLibraryItem('${item.id}')">⤓ Download</button>
+    <button class="btn secondary" style="margin-bottom:10px;" onclick="closeModal();shareLibraryItem('${item.id}')">⤴ Share</button>
+    <button class="btn" style="background:var(--coral);color:#fff;box-shadow:none;" onclick="closeModal();deleteLibraryItem('${item.id}')">✕ Delete</button>
+  `);
+}
+
+async function viewLibraryItem(id){
+  const item = (data.library||[]).find(x=>x.id===id);
+  if(!item) return;
+  const doc = await buildPDFDoc({ type: item.type, subject: item.subject, parsed: item.content });
+  window.open(doc.output("bloburl"), "_blank");
+}
+
+function downloadLibraryItem(id){
+  const item = (data.library||[]).find(x=>x.id===id);
+  if(!item) return;
+  genData = { type: item.type, subject: item.subject, parsed: item.content };
+  downloadPDF();
+}
+
+async function deleteLibraryItem(id){
+  data.library = (data.library||[]).filter(x=>x.id!==id);
+  await persist();
+  renderLibrarySection();
+  toast("Removed from library");
+}
+
+function confirmClearLibrary(){
+  showModal(`
+    <h3>Clear your library?</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">This deletes every saved study PDF. It can't be undone.</p>
+    <button class="btn" style="background:var(--coral);color:#fff;box-shadow:none;" onclick="clearLibrary()">Yes, delete everything</button>
+  `);
+}
+
+async function clearLibrary(){
+  data.library = [];
+  await persist();
+  closeModal();
+  toast("Library cleared");
+  renderLibrarySection();
+}
+
+async function shareLibraryItem(id){
+  const item = (data.library||[]).find(x=>x.id===id);
+  if(!item) return;
+  const url = "https://locked-inn1.netlify.app";
+  const text = `Check out my "${item.title}" study notes made on Locked Inn 📚`;
+  if(navigator.share){
+    try{ await navigator.share({ title: item.title, text, url }); }catch(e){ /* user cancelled */ }
+  }else{
+    const waLink = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+    try{
+      await navigator.clipboard.writeText(waLink);
+      toast("Share link copied!");
+    }catch(e){
+      toast("Couldn't copy link");
+    }
+  }
+}
+
+/* ================= UTIL ================= */
+function showModal(html){
+  const bd = document.createElement("div"); bd.className="modal-backdrop"; bd.id="modalBackdrop";
+  bd.innerHTML = `<div class="modal">${html}<button class="btn ghost" style="margin-top:10px;" onclick="closeModal()">Cancel</button></div>`;
+  bd.addEventListener("click",(e)=>{ if(e.target===bd) closeModal(); });
+  document.getElementById("frame").appendChild(bd);
+}
+function closeModal(){ document.getElementById("modalBackdrop")?.remove(); }
+function toast(msg){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.getElementById("frame").appendChild(t);
+  setTimeout(()=>t.remove(),2200);
+}
+function formatDate(d, withTime){
+  const dt = new Date(withTime ? d : d+"T00:00:00");
+  return dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+</script>
+<script>
+if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
