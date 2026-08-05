@@ -65,17 +65,11 @@ To run the AI features locally, add your own `GEMINI_API_KEY` as an environment 
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Custom domain
-- [ ] Past-papers tab
-- [ ] Expanded subject coverage
-- [ ] Progress tracking per learner
 
 ---
 
 ## 👤 Author
 
-Built by **Thabethe** — freelance web developer & designer based in Durban, South Africa.
+Built by **Nomvelo Thabethe** — freelance web developer & designer based in Durban, South Africa.
 
 Building practical, locally-relevant web products — from education tools to SaaS for schools.
