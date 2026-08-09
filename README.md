@@ -4,7 +4,7 @@
 
 Locked Inn helps students study smarter — turning any topic into instant flashcards, answering questions through a conversational AI tutor, and keeping learners focused with exam countdowns and a clean, motivating interface.
 
-🔗 **Live app:** [locked-inn.netlify.app](https://locked-inn.netlify.app) *(custom domain coming soon)*
+🔗 **Live app:** lockedinn.co.za
 
 ---
 
