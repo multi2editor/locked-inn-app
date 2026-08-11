@@ -136,6 +136,10 @@ textarea{resize:vertical;min-height:80px;}
 }
 .password-toggle:hover{color:var(--violet-deep);}
 .password-toggle svg{width:20px;height:20px;display:block;}
+#strengthMeter{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.strength-bar{flex:1;height:5px;border-radius:4px;background:var(--line);overflow:hidden;}
+.strength-fill{height:100%;width:0;border-radius:4px;transition:width .2s ease, background .2s ease;}
+.strength-label{font-size:11.5px;font-weight:700;color:var(--ink-soft);min-width:44px;text-align:right;}
 label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:0 0 6px;display:block;text-transform:uppercase;letter-spacing:.04em;}
 .field{margin-bottom:14px;}
 .eyebrow{font-size:12px;font-weight:700;color:var(--violet-deep);text-transform:uppercase;letter-spacing:.08em;margin:0 0 4px;}
@@ -158,6 +162,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .greeting-icon{width:76px;height:auto;margin-bottom:14px;}
 .greeting h1{font-size:27px;margin:0 0 6px;letter-spacing:-.02em;}
 .greeting p{color:var(--ink-soft);margin:0 0 10px;font-size:15px;}
+.streak-chip{display:inline-flex;align-items:center;gap:6px;background:var(--violet-tint);color:var(--violet-deep);border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:700;margin:0 0 10px;}
 .greeting .linkbtn{margin:0 0 26px;}
 .quote-card{background:linear-gradient(135deg,var(--frame-dark),var(--violet-deep));color:#fff;border-radius:22px;padding:24px 22px;margin-bottom:26px;box-shadow:0 14px 30px rgba(27,29,22,.35);}
 .quote-card .qmark{font-family:'Space Grotesk';font-size:34px;line-height:.6;color:var(--violet);opacity:.9;}
@@ -308,6 +313,14 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
             <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/></svg>
           </button>
         </div>
+        <div id="strengthMeter" style="display:none;">
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <span class="strength-label" id="strengthLabel"></span>
+        </div>
+      </div>
+      <div class="field" id="confirmField">
+        <label class="field-label">Confirm password</label>
+        <input type="password" id="confirmInput" placeholder="Type it again">
       </div>
       <div id="authError" style="display:none;background:var(--coral-tint);color:#B84A2E;border-radius:12px;padding:12px 14px;font-size:12.5px;margin-bottom:14px;"></div>
       <button class="btn" id="authBtn" onclick="submitAuth()">Create account</button>
@@ -329,6 +342,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
       <div class="greeting">
         <img class="greeting-icon" src="assets/logo-book.png" alt="Locked Inn">
         <h1 id="homeGreeting">Hey there 👋</h1>
+        <div class="streak-chip" id="streakChip" style="display:none;"></div>
         <p id="homeSub">Ready to make today count?</p>
         <button class="linkbtn" onclick="openNameModal()">Edit name</button>
       </div>
@@ -517,6 +531,7 @@ function tryLeaveSplash(){
 }
 
 window.addEventListener("DOMContentLoaded", async ()=>{
+  document.getElementById("passwordInput").addEventListener("input", renderStrength);
   spawnBubbles("bubblesSplash", 7);
   spawnBubbles("bubblesHome", 6);
   renderLogoMark();
@@ -584,7 +599,43 @@ function goto(route){
   if(route==="generator") renderGenerator();
 }
 
+function todayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function daysBetween(fromKey, toKey){
+  return Math.round((new Date(toKey+"T00:00:00") - new Date(fromKey+"T00:00:00"))/86400000);
+}
+
+async function updateStreak(){
+  if(!profile) return;
+  const today = todayKey();
+  const streak = profile.streak || { count:0, lastDate:null };
+  if(streak.lastDate === today) return;
+  const gap = streak.lastDate ? daysBetween(streak.lastDate, today) : null;
+  streak.count = gap === 1 ? streak.count + 1 : 1;
+  streak.lastDate = today;
+  profile.streak = streak;
+  await cloudOrLocalSave("profile", profile);
+}
+
+function streakChipHTML(){
+  const count = profile?.streak?.count || 0;
+  if(count < 1) return "";
+  return `<div class="streak-chip">${count === 1 ? "\u{1F525} Day 1 \u2014 streak started" : `\u{1F525} ${count}-day streak`}</div>`;
+}
+
+function renderStreak(){
+  const chip = document.getElementById("streakChip");
+  const count = profile?.streak?.count || 0;
+  if(count < 1){ chip.style.display = "none"; return; }
+  chip.style.display = "inline-flex";
+  chip.textContent = count === 1 ? "🔥 Day 1 — streak started" : `🔥 ${count}-day streak`;
+}
+
 function setHomeContent(){
+  renderStreak();
   const h = new Date().getHours();
   const period = h<12?"morning":h<18?"afternoon":"evening";
   document.getElementById("homeGreeting").textContent = `Good ${period}, ${profile?.name || "there"} 👋`;
@@ -663,6 +714,34 @@ function hidePassword(){
   if(document.getElementById("passwordInput").type === "text") togglePasswordVisibility();
 }
 
+const STRENGTH_LEVELS = [
+  { label:"Weak", width:"25%", color:"var(--coral)" },
+  { label:"Fair", width:"50%", color:"#E8A33D" },
+  { label:"Good", width:"75%", color:"var(--violet-deep)" },
+  { label:"Strong", width:"100%", color:"var(--mint)" }
+];
+
+function passwordStrength(pw){
+  let score = 0;
+  if(pw.length >= 6) score++;
+  if(pw.length >= 8) score++;
+  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if(/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
+  return Math.min(score, 4);
+}
+
+function renderStrength(){
+  const pw = document.getElementById("passwordInput").value;
+  const meter = document.getElementById("strengthMeter");
+  if(authMode !== "signup" || !pw){ meter.style.display = "none"; return; }
+  meter.style.display = "flex";
+  const level = STRENGTH_LEVELS[Math.max(passwordStrength(pw), 1) - 1];
+  const fill = document.getElementById("strengthFill");
+  fill.style.width = level.width;
+  fill.style.background = level.color;
+  document.getElementById("strengthLabel").textContent = level.label;
+}
+
 function showAuthError(msg){
   const el = document.getElementById("authError");
   el.textContent = msg; el.style.display = "block";
@@ -674,7 +753,10 @@ function toggleAuthMode(){
   document.getElementById("authNotice").style.display = "none";
   document.getElementById("emailInput").value = "";
   document.getElementById("passwordInput").value = "";
+  document.getElementById("confirmInput").value = "";
   hidePassword();
+  document.getElementById("confirmField").style.display = authMode === "signup" ? "" : "none";
+  renderStrength();
   if(authMode === "login"){
     document.getElementById("authEyebrow").textContent = "Welcome back";
     document.getElementById("authTitle").textContent = "Log in";
@@ -725,10 +807,12 @@ function friendlyAuthError(e){
 async function submitAuth(){
   const email = document.getElementById("emailInput").value.trim();
   const password = document.getElementById("passwordInput").value;
+  const confirm = document.getElementById("confirmInput").value;
   const name = document.getElementById("nameInput").value.trim();
   document.getElementById("authError").style.display = "none";
   if(!email || !password){ showAuthError("Enter an email and password."); return; }
   if(authMode === "signup" && password.length < 6){ showAuthError("Password needs to be at least 6 characters."); return; }
+  if(authMode === "signup" && password !== confirm){ showAuthError("Both passwords need to match."); return; }
   const btn = document.getElementById("authBtn");
   const label = btn.textContent;
   btn.textContent = authMode === "signup" ? "Creating account…" : "Logging in…";
@@ -764,6 +848,7 @@ async function loadCloudData(user){
     console.error("Couldn't load cloud data", e);
     profile = { name: user.displayName || "Student", email: user.email };
   }
+  await updateStreak();
 }
 
 async function cloudOrLocalSave(field, value){
@@ -796,6 +881,7 @@ function renderDashboard(){
     </div>
     <p class="eyebrow">Dashboard</p>
     <h1 class="pagetitle">Welcome back, ${escapeHtml(profile?.name||"Student")}</h1>
+    ${streakChipHTML()}
     <p class="sub">Here's what's on your plate today.</p>
     <div class="stat-row">
       <div class="stat"><b>${data.todos.length}</b><span>To-dos</span></div>
@@ -849,7 +935,9 @@ async function doLogOut(){
   closeModal();
   document.getElementById("emailInput").value = "";
   document.getElementById("passwordInput").value = "";
+  document.getElementById("confirmInput").value = "";
   hidePassword();
+  renderStrength();
   document.getElementById("nameInput").value = "";
   /* goto("auth") happens automatically via the onAuthStateChanged listener */
 }
