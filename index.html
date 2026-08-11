@@ -183,6 +183,9 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
 .section-title h3{font-size:15.5px;margin:0;}
 .section-title button{background:none;border:none;color:var(--violet-deep);font-weight:700;font-size:13px;cursor:pointer;}
+.ig-link{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;color:var(--ink-faint);font-size:11.5px;font-weight:600;text-decoration:none;}
+.ig-link:hover{color:var(--violet-deep);}
+.ig-link svg{width:15px;height:15px;}
 .linkbtn{background:none;border:none;padding:0;margin:0 0 12px;color:var(--violet-deep);font:inherit;font-size:12.5px;font-weight:700;text-decoration:underline;cursor:pointer;}
 .reminder-row,.todo-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
 .reminder-row:last-child,.todo-row:last-child{border-bottom:none;}
@@ -312,6 +315,10 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
       <div id="authNotice" style="display:none;background:var(--mint-tint);color:#00806D;border-radius:12px;padding:12px 14px;font-size:12.5px;margin-top:14px;"></div>
       <button id="forgotLink" onclick="forgotPassword()" style="display:none;background:none;border:none;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;cursor:pointer;margin:14px auto 0;">Forgot your password?</button>
       <p style="text-align:center;font-size:11px;color:var(--ink-faint);margin-top:18px;line-height:1.5;">By continuing, you agree to our <a href="legal.html" target="_blank" style="color:var(--ink-soft);text-decoration:underline;">Terms &amp; Privacy</a>.</p>
+      <a class="ig-link" href="https://instagram.com/lockedinn.co.za" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+        @lockedinn.co.za
+      </a>
     </div>
   </div>
 
@@ -818,6 +825,10 @@ function renderDashboard(){
       <button class="btn" style="flex:1;" onclick="shareApp()">Share Locked Inn</button>
       <button class="btn secondary" style="flex:1;" onclick="shareMyPDFs()">Share my PDFs</button>
     </div>
+    <a class="btn ghost" style="margin-top:10px;text-decoration:none;" href="https://instagram.com/lockedinn.co.za" target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+      Follow us on Instagram
+    </a>
 
     <button class="btn ghost" style="margin-top:8px;" onclick="logOut()">Log out</button>
   `;
