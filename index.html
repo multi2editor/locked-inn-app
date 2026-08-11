@@ -1108,7 +1108,7 @@ function renderPapers(){
     ${topbarHTML()}
     <p class="eyebrow">Past papers</p>
     <h1 class="pagetitle">Find a past paper</h1>
-    <p class="sub">Straight from Stanmore Physics — free South African past papers for grades 10 to 12.</p>
+    <p class="sub">Straight from Stanmore Physics — free South African past papers for grades 8 to 12.</p>
     <div class="card">
       <div class="field"><label class="field-label">Subject</label>
         <select id="pSubject">${Object.keys(STANMORE).map(s=>`<option value="${escapeAttr(s)}" ${s===prevSubject?'selected':''}>${escapeHtml(s)}</option>`).join("")}</select>
