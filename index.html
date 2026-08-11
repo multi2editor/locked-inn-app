@@ -162,7 +162,9 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .greeting-icon{width:76px;height:auto;margin-bottom:14px;}
 .greeting h1{font-size:27px;margin:0 0 6px;letter-spacing:-.02em;}
 .greeting p{color:var(--ink-soft);margin:0 0 10px;font-size:15px;}
-.streak-chip{display:inline-flex;align-items:center;gap:6px;background:var(--violet-tint);color:var(--violet-deep);border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:700;margin:0 0 10px;}
+.streak-chip{display:inline-flex;align-items:center;gap:6px;background:var(--violet-tint);color:var(--violet-deep);border:none;font-family:inherit;border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:700;margin:0 0 10px;cursor:pointer;transition:transform .12s ease;}
+.streak-chip:active{transform:scale(.95);}
+.streak-chip .share-ic{width:13px;height:13px;opacity:.75;}
 .greeting .linkbtn{margin:0 0 26px;}
 .quote-card{background:linear-gradient(135deg,var(--frame-dark),var(--violet-deep));color:#fff;border-radius:22px;padding:24px 22px;margin-bottom:26px;box-shadow:0 14px 30px rgba(27,29,22,.35);}
 .quote-card .qmark{font-family:'Space Grotesk';font-size:34px;line-height:.6;color:var(--violet);opacity:.9;}
@@ -361,7 +363,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
       <div class="greeting">
         <img class="greeting-icon" src="assets/logo-book.png" alt="Locked Inn">
         <h1 id="homeGreeting">Hey there 👋</h1>
-        <div class="streak-chip" id="streakChip" style="display:none;"></div>
+        <button type="button" class="streak-chip" id="streakChip" style="display:none;" onclick="shareStreak()" aria-label="Share my streak"></button>
         <p id="homeSub">Ready to make today count?</p>
         <button class="linkbtn" onclick="openNameModal()">Edit name</button>
       </div>
@@ -671,15 +673,21 @@ function skeletonDocHTML(note){
 function streakChipHTML(){
   const count = profile?.streak?.count || 0;
   if(count < 1) return "";
-  return `<div class="streak-chip">${count === 1 ? "\u{1F525} Day 1 \u2014 streak started" : `\u{1F525} ${count}-day streak`}</div>`;
+  return `<button type="button" class="streak-chip" onclick="shareStreak()" aria-label="Share my streak">${streakChipLabel(count)}${SHARE_ICON}</button>`;
 }
+
+function streakChipLabel(count){
+  return count === 1 ? "\u{1F525} Day 1 \u2014 streak started" : `\u{1F525} ${count}-day streak`;
+}
+
+const SHARE_ICON = `<svg class="share-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/></svg>`;
 
 function renderStreak(){
   const chip = document.getElementById("streakChip");
   const count = profile?.streak?.count || 0;
   if(count < 1){ chip.style.display = "none"; return; }
   chip.style.display = "inline-flex";
-  chip.textContent = count === 1 ? "🔥 Day 1 — streak started" : `🔥 ${count}-day streak`;
+  chip.innerHTML = escapeHtml(streakChipLabel(count)) + SHARE_ICON;
 }
 
 function setHomeContent(){
