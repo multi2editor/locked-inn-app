@@ -197,6 +197,8 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .rdot{width:9px;height:9px;border-radius:50%;background:var(--coral);flex:none;}
 .reminder-row .rmeta b{display:block;font-size:14px;}
 .reminder-row .rmeta span{font-size:12px;color:var(--ink-soft);}
+.push-toggle{margin-bottom:10px;font-size:13px;}
+.push-toggle.on{background:var(--violet-tint);color:var(--violet-deep);border-color:var(--violet-tint);}
 .rcount{margin-left:auto;font-size:12px;font-weight:700;color:var(--coral);background:var(--coral-tint);padding:4px 9px;border-radius:20px;}
 .chk{width:20px;height:20px;border-radius:7px;border:2px solid var(--line);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .chk.done{background:var(--mint);border-color:var(--mint);color:#fff;}
@@ -452,8 +454,11 @@ import {
   onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc
+  getFirestore, doc, getDoc, setDoc, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import {
+  getMessaging, getToken, isSupported
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging.js";
 
 let auth = null, db = null;
 
@@ -503,6 +508,30 @@ window.firestoreLoad = async function(uid){
 
 window.firestoreSave = async function(uid, dataObj){
   await setDoc(doc(db, "users", uid), dataObj, { merge: true });
+};
+
+/* ---------- Push notifications ----------
+   The token identifies this browser on this device, so a learner who studies on
+   a phone and a laptop ends up with one token per device. */
+window.pushSupported = async function(){
+  try{ return await isSupported(); }catch(e){ return false; }
+};
+
+window.pushGetToken = async function(vapidKey){
+  const registration = await navigator.serviceWorker.ready;
+  return await getToken(getMessaging(), { vapidKey, serviceWorkerRegistration: registration });
+};
+
+window.pushSaveToken = async function(uid, token, timeZone){
+  await setDoc(doc(db, "users", uid), {
+    push: { enabled: true, timeZone, tokens: arrayUnion(token) }
+  }, { merge: true });
+};
+
+window.pushForgetToken = async function(uid, token){
+  await setDoc(doc(db, "users", uid), {
+    push: { enabled: false, tokens: arrayRemove(token) }
+  }, { merge: true });
 };
 </script>
 <script>
@@ -1072,6 +1101,7 @@ async function loadCloudData(user){
     profile = { name: user.displayName || "Student", email: user.email };
   }
   await updateStreak();
+  refreshPushToken();
 }
 
 async function cloudOrLocalSave(field, value){
@@ -1113,6 +1143,10 @@ function renderDashboard(){
     </div>
 
     <div class="section-title"><h3>Exam reminders</h3><button onclick="openReminderModal()">+ Add</button></div>
+    <button class="btn ghost push-toggle ${pushIsOn()?'on':''}" onclick="toggleExamPush()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      ${pushIsOn() ? "Reminders on — tap to turn off" : "Remind me before my exams"}
+    </button>
     <div class="card" id="remList">
       ${upcoming.length ? upcoming.map(r=>`
         <div class="reminder-row">
@@ -1195,6 +1229,72 @@ function autoGenerateReminderTodos(){
 function notifyUser(title, body){
   if(!("Notification" in window)) return;
   if(Notification.permission === "granted"){ new Notification(title, {body}); }
+}
+
+/* ---------- Exam reminder push ----------
+   notifyUser() above only reaches a learner with the app open; these are the
+   ones that arrive when it's closed, sent daily by
+   netlify/functions/exam-reminders.js. */
+const FCM_VAPID_KEY = "BMvxDHRV1Bl-v4NdQH5wCiFnDX-g7vC9ob2eqk6Tyz6hS7nLNCCD52HOWIf6KZDvRDFF42dtODpkVkrHa3cP5p0"; /* public key: Firebase console > Project settings > Cloud Messaging > Web Push certificates */
+let pushToken = null;
+
+function pushIsOn(){
+  return "Notification" in window && Notification.permission === "granted" && profile?.pushOn === true;
+}
+
+async function pushUsable(){
+  if(!FCM_VAPID_KEY || !currentUser) return false;
+  if(!("Notification" in window) || !("serviceWorker" in navigator)) return false;
+  return await window.pushSupported();
+}
+
+/* Tokens rotate, so re-register on every load while reminders are on. */
+async function refreshPushToken(){
+  if(!pushIsOn() || !(await pushUsable())) return;
+  try{
+    pushToken = await window.pushGetToken(FCM_VAPID_KEY);
+    if(pushToken) await window.pushSaveToken(currentUser.uid, pushToken, deviceTimeZone());
+  }catch(e){ console.error("Couldn't refresh push token", e); }
+}
+
+function deviceTimeZone(){
+  try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Johannesburg"; }
+  catch(e){ return "Africa/Johannesburg"; }
+}
+
+async function toggleExamPush(){
+  if(!currentUser){ toast("Log in to get exam reminders"); return; }
+  if(!FCM_VAPID_KEY){ toast("Push reminders aren't switched on for this site yet"); return; }
+  if(!(await pushUsable())){ toast("This browser can't do push reminders"); return; }
+
+  if(pushIsOn()){
+    try{ if(pushToken) await window.pushForgetToken(currentUser.uid, pushToken); }catch(e){ console.error(e); }
+    profile = { ...profile, pushOn:false };
+    await cloudOrLocalSave("profile", profile);
+    renderDashboard();
+    toast("Exam reminders turned off");
+    return;
+  }
+
+  if(Notification.permission === "denied"){
+    toast("Notifications are blocked in your browser settings");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  if(permission !== "granted"){ toast("Allow notifications to get exam reminders"); return; }
+
+  try{
+    pushToken = await window.pushGetToken(FCM_VAPID_KEY);
+    if(!pushToken) throw new Error("no token returned");
+    await window.pushSaveToken(currentUser.uid, pushToken, deviceTimeZone());
+    profile = { ...profile, pushOn:true };
+    await cloudOrLocalSave("profile", profile);
+    renderDashboard();
+    toast("Exam reminders on — we'll nudge you before each exam");
+  }catch(e){
+    console.error(e);
+    toast("Couldn't turn reminders on — try again");
+  }
 }
 
 function openNameModal(){
