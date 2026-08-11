@@ -26,7 +26,7 @@ const SCOPES = [
 ].join(" ");
 
 /* Days before an exam that are worth a nudge. */
-const NUDGE_DAYS = [7, 2, 1];
+const NUDGE_DAYS = [7, 3, 2, 1];
 
 function base64url(input) {
   return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
@@ -129,6 +129,12 @@ function wording(subject, days) {
     return {
       title: `${subject} in 2 days`,
       body: "Time for final revision. Open your deck and run through the tricky cards."
+    };
+  }
+  if (days === 3) {
+    return {
+      title: `${subject} in 3 days`,
+      body: "Three days out — tackle the topics you've been avoiding while you still can."
     };
   }
   return {
