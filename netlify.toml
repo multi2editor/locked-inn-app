@@ -4,3 +4,7 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# 05:00 UTC is 07:00 in South Africa — before the school day starts.
+[functions."exam-reminders"]
+  schedule = "0 5 * * *"
