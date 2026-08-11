@@ -751,13 +751,28 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.closePath();
 }
 
-function loadLogoImage(){
+function loadImage(src){
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = "assets/logo-book.png";
+    img.src = src;
   });
+}
+
+/* Brand flame, drawn in normalised coords around (cx, cy) with radius s. */
+function flamePath(ctx, cx, cy, s){
+  const X = v => cx + v*s, Y = v => cy + v*s;
+  ctx.beginPath();
+  ctx.moveTo(X(0), Y(-1.08));
+  ctx.bezierCurveTo(X(0.18),Y(-0.66), X(0.40),Y(-0.54), X(0.42),Y(-0.24));
+  ctx.bezierCurveTo(X(0.56),Y(-0.42), X(0.70),Y(-0.38), X(0.74),Y(-0.20));
+  ctx.bezierCurveTo(X(0.82),Y(0.06), X(0.76),Y(0.32), X(0.70),Y(0.48));
+  ctx.bezierCurveTo(X(0.56),Y(0.84), X(0.32),Y(1.02), X(0),Y(1.02));
+  ctx.bezierCurveTo(X(-0.38),Y(1.02), X(-0.76),Y(0.70), X(-0.72),Y(0.24));
+  ctx.bezierCurveTo(X(-0.69),Y(-0.08), X(-0.44),Y(-0.20), X(-0.38),Y(-0.48));
+  ctx.bezierCurveTo(X(-0.32),Y(-0.72), X(-0.16),Y(-0.90), X(0),Y(-1.08));
+  ctx.closePath();
 }
 
 async function buildStreakCard(){
@@ -768,61 +783,59 @@ async function buildStreakCard(){
 
   try{ await document.fonts.ready; }catch(e){}
 
+  const BRAND_GREEN = "#1A290A", BRAND_LIME = "#A1CD0B";
+
   const bg = ctx.createLinearGradient(0, 0, W*0.4, H);
   bg.addColorStop(0, "#F7F7F5");
   bg.addColorStop(1, "#ECEDE8");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-
-  const logo = await loadLogoImage();
-  let y = 150;
-  if(logo){
-    const size = 96;
-    ctx.drawImage(logo, PAD, y - size*0.72, size, size * (logo.height/logo.width));
-  }
-  ctx.fillStyle = "#1B1E2B";
-  ctx.font = "700 42px 'Space Grotesk', sans-serif";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("Locked Inn", PAD + (logo ? 120 : 0), y);
+
+  const wordmark = await loadImage("assets/logo-word.png");
+  if(wordmark){
+    const w = 250;
+    ctx.drawImage(wordmark, W/2 - w/2, 120, w, w * (wordmark.height/wordmark.width));
+  }
 
   const streak = (profile.streak && profile.streak.count) || 0;
-  y = 540;
-  const chipText = `\uD83D\uDD25 ${streak}-day streak`;
-  ctx.font = "700 38px 'Inter', sans-serif";
-  const chipW = ctx.measureText(chipText).width + 76;
-  ctx.fillStyle = "#EEFAD1";
-  roundRect(ctx, PAD, y - 46, chipW, 68, 34);
+  const cx = W/2, flameY = 700, flameS = 260;
+  ctx.save();
+  ctx.shadowColor = "rgba(26,41,10,.16)";
+  ctx.shadowBlur = 70;
+  flamePath(ctx, cx, flameY, flameS);
+  ctx.fillStyle = BRAND_LIME;
   ctx.fill();
-  ctx.fillStyle = "#4C7A0C";
-  ctx.fillText(chipText, PAD + 38, y);
+  ctx.restore();
 
-  y += 190;
-  ctx.fillStyle = "#1B1E2B";
-  ctx.font = "700 220px 'Space Grotesk', sans-serif";
-  ctx.fillText(String(streak), PAD, y);
+  ctx.textAlign = "center";
+  ctx.fillStyle = BRAND_GREEN;
+  ctx.font = "700 190px 'Space Grotesk', sans-serif";
+  ctx.fillText(String(streak), cx, flameY + 0.42*flameS);
 
-  y += 95;
-  ctx.font = "700 88px 'Inter', sans-serif";
-  ctx.fillText("days locked in", PAD, y);
+  let y = flameY + flameS + 130;
+  ctx.font = "700 84px 'Inter', sans-serif";
+  ctx.fillText("days locked in", cx, y);
 
-  y += 74;
+  y += 66;
   ctx.fillStyle = "#666B80";
-  ctx.font = "400 40px 'Inter', sans-serif";
+  ctx.font = "400 38px 'Inter', sans-serif";
   const who = (profile.name || "I").trim();
-  ctx.fillText(`${who} has studied ${streak} day${streak===1?"":"s"} in a row.`, PAD, y);
+  ctx.fillText(`${who} has studied ${streak} day${streak===1?"":"s"} in a row.`, cx, y);
 
   y += 110;
   ctx.fillStyle = "#4C7A0C";
   ctx.font = "700 30px 'Inter', sans-serif";
-  ctx.fillText("COMING UP", PAD, y);
+  ctx.fillText("COMING UP", cx, y);
+  ctx.textAlign = "left";
 
   const upcoming = (data.reminders || [])
     .filter(r => daysUntil(r.date) >= 0)
     .sort((a,b) => new Date(a.date) - new Date(b.date))
     .slice(0, 3);
 
-  y += 34;
-  const rowW = W - PAD*2, rowH = 130;
+  y += 40;
+  const rowW = W - PAD*2, rowH = 124;
   if(upcoming.length){
     upcoming.forEach(r => {
       ctx.fillStyle = "#FFFFFF";
@@ -832,22 +845,22 @@ async function buildStreakCard(){
       ctx.fillStyle = subjectColour(r.subject).ink;
       ctx.beginPath(); ctx.arc(PAD + 52, y + rowH/2, 15, 0, Math.PI*2); ctx.fill();
 
-      ctx.fillStyle = "#1B1E2B";
-      ctx.font = "700 42px 'Inter', sans-serif";
-      ctx.fillText(r.subject, PAD + 96, y + 62);
+      ctx.fillStyle = BRAND_GREEN;
+      ctx.font = "700 40px 'Inter', sans-serif";
+      ctx.fillText(r.subject, PAD + 96, y + 58);
       ctx.fillStyle = "#666B80";
-      ctx.font = "400 32px 'Inter', sans-serif";
-      ctx.fillText(formatDate(r.date), PAD + 96, y + 106);
+      ctx.font = "400 30px 'Inter', sans-serif";
+      ctx.fillText(formatDate(r.date), PAD + 96, y + 100);
 
       const days = `${daysUntil(r.date)}d`;
-      ctx.font = "700 34px 'Inter', sans-serif";
+      ctx.font = "700 32px 'Inter', sans-serif";
       const dw = ctx.measureText(days).width + 48;
       ctx.fillStyle = "#EEFAD1";
       roundRect(ctx, PAD + rowW - dw - 36, y + rowH/2 - 28, dw, 56, 28); ctx.fill();
       ctx.fillStyle = "#4C7A0C";
       ctx.fillText(days, PAD + rowW - dw - 12, y + rowH/2 + 12);
 
-      y += rowH + 26;
+      y += rowH + 22;
     });
   }else{
     ctx.fillStyle = "#FFFFFF";
@@ -860,18 +873,18 @@ async function buildStreakCard(){
     ctx.textAlign = "left";
   }
 
-  const footY = H - 150;
+  const footY = H - 140;
   ctx.fillStyle = "#666B80";
-  ctx.font = "400 34px 'Inter', sans-serif";
+  ctx.font = "400 32px 'Inter', sans-serif";
   ctx.fillText("@lockedinn.co.za", PAD, footY);
 
   const cta = "Study with me \u2192";
-  ctx.font = "700 34px 'Inter', sans-serif";
-  const ctaW = ctx.measureText(cta).width + 76;
-  ctx.fillStyle = "#1B1D16";
-  roundRect(ctx, W - PAD - ctaW, footY - 46, ctaW, 76, 38); ctx.fill();
+  ctx.font = "700 32px 'Inter', sans-serif";
+  const ctaW = ctx.measureText(cta).width + 72;
+  ctx.fillStyle = BRAND_GREEN;
+  roundRect(ctx, W - PAD - ctaW, footY - 44, ctaW, 72, 36); ctx.fill();
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillText(cta, W - PAD - ctaW + 38, footY);
+  ctx.fillText(cta, W - PAD - ctaW + 36, footY);
 
   return canvas;
 }
