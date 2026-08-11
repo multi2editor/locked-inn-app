@@ -157,7 +157,8 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 #home .pad{display:flex;flex-direction:column;justify-content:flex-start;padding-top:56px;}
 .greeting-icon{width:76px;height:auto;margin-bottom:14px;}
 .greeting h1{font-size:27px;margin:0 0 6px;letter-spacing:-.02em;}
-.greeting p{color:var(--ink-soft);margin:0 0 26px;font-size:15px;}
+.greeting p{color:var(--ink-soft);margin:0 0 10px;font-size:15px;}
+.greeting .linkbtn{margin:0 0 26px;}
 .quote-card{background:linear-gradient(135deg,var(--frame-dark),var(--violet-deep));color:#fff;border-radius:22px;padding:24px 22px;margin-bottom:26px;box-shadow:0 14px 30px rgba(27,29,22,.35);}
 .quote-card .qmark{font-family:'Space Grotesk';font-size:34px;line-height:.6;color:var(--violet);opacity:.9;}
 .quote-card p{font-size:16.5px;line-height:1.5;margin:8px 0 10px;font-weight:500;}
@@ -182,6 +183,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
 .section-title h3{font-size:15.5px;margin:0;}
 .section-title button{background:none;border:none;color:var(--violet-deep);font-weight:700;font-size:13px;cursor:pointer;}
+.linkbtn{background:none;border:none;padding:0;margin:0 0 12px;color:var(--violet-deep);font:inherit;font-size:12.5px;font-weight:700;text-decoration:underline;cursor:pointer;}
 .reminder-row,.todo-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
 .reminder-row:last-child,.todo-row:last-child{border-bottom:none;}
 .rdot{width:9px;height:9px;border-radius:50%;background:var(--coral);flex:none;}
@@ -321,6 +323,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
         <img class="greeting-icon" src="assets/logo-book.png" alt="Locked Inn">
         <h1 id="homeGreeting">Hey there 👋</h1>
         <p id="homeSub">Ready to make today count?</p>
+        <button class="linkbtn" onclick="openNameModal()">Edit name</button>
       </div>
       <div class="quote-card">
         <div class="qmark">"</div>
@@ -433,6 +436,10 @@ window.firebaseSignIn = async function(email, password){
   if(!window.firebaseReady) throw new Error("Firebase isn't configured yet — add your project keys in index.html.");
   const cred = await signInWithEmailAndPassword(auth, email, password);
   return cred.user;
+};
+
+window.firebaseUpdateName = async function(name){
+  if(auth?.currentUser) await updateProfile(auth.currentUser, { displayName: name });
 };
 
 window.firebaseSignOut = async function(){
@@ -777,7 +784,7 @@ function renderDashboard(){
       </div>
     </div>
     <p class="eyebrow">Dashboard</p>
-    <h1 class="pagetitle">Welcome back, ${profile?.name||"Student"}</h1>
+    <h1 class="pagetitle">Welcome back, ${escapeHtml(profile?.name||"Student")}</h1>
     <p class="sub">Here's what's on your plate today.</p>
     <div class="stat-row">
       <div class="stat"><b>${data.todos.length}</b><span>To-dos</span></div>
@@ -862,6 +869,28 @@ function autoGenerateReminderTodos(){
 function notifyUser(title, body){
   if(!("Notification" in window)) return;
   if(Notification.permission === "granted"){ new Notification(title, {body}); }
+}
+
+function openNameModal(){
+  showModal(`
+    <h3>Change your name</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">This is the name Locked Inn greets you with across the app.</p>
+    <div class="field"><label class="field-label">First name</label><input type="text" id="nameEditInput" maxlength="40" placeholder="Your first name" value="${escapeAttr(profile?.name||"")}"></div>
+    <button class="btn" onclick="saveName()">Save name</button>
+  `);
+  document.getElementById("nameEditInput").focus();
+}
+
+async function saveName(){
+  const name = document.getElementById("nameEditInput").value.trim();
+  if(!name){ toast("Enter a name first"); return; }
+  if(name === profile?.name){ closeModal(); return; }
+  profile = { ...(profile||{}), name };
+  await cloudOrLocalSave("profile", profile);
+  try{ await window.firebaseUpdateName(name); }catch(e){ console.error(e); }
+  closeModal();
+  setHomeContent();
+  toast("Name updated");
 }
 
 function openReminderModal(){
