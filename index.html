@@ -102,7 +102,6 @@ button{font-family:inherit;}
 .splash-tag{opacity:0;animation:fadeUp .6s ease forwards;animation-delay:1.35s;
   color:var(--ink-soft);font-size:14px;margin-top:18px;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.skip-btn{position:absolute;bottom:28px;right:24px;background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;z-index:2;}
 
 /* ---------- Shared layout ---------- */
 .pad{padding:24px 22px 100px;position:relative;z-index:1;flex:1;overflow-y:auto;}
@@ -273,7 +272,6 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
   <!-- SPLASH -->
   <div class="screen active" id="splash">
     <div class="bubbles" id="bubblesSplash"></div>
-    <button class="skip-btn" onclick="goto('auth')">Skip ›</button>
     <div class="splash-logo">
       <img class="splash-word" src="assets/logo-word.png" alt="Locked Inn">
       <img class="splash-book" src="assets/logo-book.png" alt="">
