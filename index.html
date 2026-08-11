@@ -263,6 +263,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .modal-backdrop{position:absolute;inset:0;background:rgba(20,21,35,.45);z-index:20;display:flex;align-items:flex-end;}
 .modal{background:#fff;border-radius:24px 24px 0 0;padding:22px;width:100%;max-height:85%;overflow-y:auto;}
 .modal h3{margin:0 0 14px;}
+.offline-bar{position:absolute;top:0;left:0;right:0;z-index:40;background:var(--ink);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 12px;}
 .toast{position:absolute;left:22px;right:22px;bottom:96px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:13px;z-index:30;box-shadow:var(--shadow-lg);text-align:center;}
 
 .gen-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
@@ -278,6 +279,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 </head>
 <body>
 <div id="frame">
+  <div class="offline-bar" id="offlineBar" style="display:none;">You're offline — your work is saved and will sync when you're back.</div>
 
   <!-- SPLASH -->
   <div class="screen active" id="splash">
@@ -538,6 +540,9 @@ function tryLeaveSplash(){
 
 window.addEventListener("DOMContentLoaded", async ()=>{
   document.getElementById("passwordInput").addEventListener("input", renderStrength);
+  window.addEventListener("online", syncOfflineBar);
+  window.addEventListener("offline", syncOfflineBar);
+  syncOfflineBar();
   spawnBubbles("bubblesSplash", 7);
   spawnBubbles("bubblesHome", 6);
   renderLogoMark();
@@ -819,6 +824,7 @@ async function submitAuth(){
   const name = document.getElementById("nameInput").value.trim();
   document.getElementById("authError").style.display = "none";
   if(!email || !password){ showAuthError("Enter an email and password."); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ showAuthError("That email doesn't look right — check for typos."); return; }
   if(authMode === "signup" && password.length < 6){ showAuthError("Password needs to be at least 6 characters."); return; }
   if(authMode === "signup" && password !== confirm){ showAuthError("Both passwords need to match."); return; }
   const btn = document.getElementById("authBtn");
@@ -1721,6 +1727,9 @@ function showModal(html){
   document.getElementById("frame").appendChild(bd);
 }
 function closeModal(){ document.getElementById("modalBackdrop")?.remove(); }
+function syncOfflineBar(){
+  document.getElementById("offlineBar").style.display = navigator.onLine ? "none" : "block";
+}
 function toast(msg){
   const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
   document.getElementById("frame").appendChild(t);
