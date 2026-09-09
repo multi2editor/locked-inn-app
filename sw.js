@@ -1,4 +1,4 @@
-const CACHE = "locked-inn-v17";
+const CACHE = "locked-inn-v21";
 const CORE = [
   "./",
   "./index.html",
@@ -68,6 +68,9 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(request.url);
   /* Firebase auth/Firestore and the Gemini function must always hit the network. */
   if (url.pathname.startsWith("/.netlify/") || /googleapis\.com$/.test(url.hostname)) return;
+  /* never cache a service worker script - a stale copy would pin the old
+     push handler in place for good. */
+  if (/(^|\/)(sw|firebase-messaging-sw)\.js$/.test(url.pathname)) return;
 
   e.respondWith(isStaticAsset(url) ? cacheFirst(request) : networkFirst(request));
 });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
-<title>Locked Inn — Study Smarter</title>
+<title>Locked Inn: Study Smarter</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
@@ -301,7 +301,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 </head>
 <body>
 <div id="frame">
-  <div class="offline-bar" id="offlineBar" style="display:none;">You're offline — your work is saved and will sync when you're back.</div>
+  <div class="offline-bar" id="offlineBar" style="display:none;">You're offline. Your work is saved and will sync when you're back.</div>
 
   <!-- SPLASH -->
   <div class="screen active" id="splash">
@@ -319,7 +319,7 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
       <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:28px;" id="logoMark"></div>
       <p class="eyebrow" style="text-align:center;" id="authEyebrow">Welcome</p>
       <h1 class="pagetitle" style="text-align:center;" id="authTitle">Create your account</h1>
-      <p class="sub" style="text-align:center;" id="authSub">One-time sign up — we'll keep every deck, note and streak safe for you, wherever you log in.</p>
+      <p class="sub" style="text-align:center;" id="authSub">One-time sign up. We'll keep every deck, note and streak safe for you, wherever you log in.</p>
       <div class="field" id="nameField">
         <label class="field-label">First name</label>
         <input type="text" id="nameInput" placeholder="Your first name">
@@ -526,8 +526,17 @@ window.pushSupported = async function(){
   try{ return await isSupported(); }catch(e){ return false; }
 };
 
+/* FCM needs the worker that actually carries its background handler. It gets a
+   dedicated scope: registering it at "/" would displace sw.js, since two
+   registrations cannot share one scope. */
+const FCM_SW_SCOPE = "./firebase-cloud-messaging-push-scope";
+window.fcmRegistration = async function(){
+  return await navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: FCM_SW_SCOPE });
+};
+
 window.pushGetToken = async function(vapidKey){
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await window.fcmRegistration();
+  await navigator.serviceWorker.ready;
   return await getToken(getMessaging(), { vapidKey, serviceWorkerRegistration: registration });
 };
 
@@ -570,7 +579,7 @@ const QUOTES = [
   "Every page you review today is a shortcut for future you.",
   "Progress hides inside boring, consistent effort.",
   "Confidence is built one finished task at a time.",
-  "The exam doesn't test luck — it tests the version of you who showed up.",
+  "The exam doesn't test luck. It tests the version of you who showed up.",
   "Rest is part of the plan, not a break from it.",
   "You are one focused hour away from feeling in control again.",
   "Grades fade, the habit of showing up doesn't."
@@ -674,7 +683,27 @@ async function updateStreak(){
   const streak = profile.streak || { count:0, lastDate:null };
   if(streak.lastDate === today) return;
   const gap = streak.lastDate ? daysBetween(streak.lastDate, today) : null;
-  streak.count = gap === 1 ? streak.count + 1 : 1;
+
+  if(gap === null){
+    // brand new — first day on the board
+    streak.count = 1;
+    streak.paused = false;
+    streak.missedDays = 0;
+  }else if(gap === 1){
+    // studied yesterday, back again today — streak carries on
+    streak.count = streak.count + 1;
+    streak.paused = false;
+    streak.missedDays = 0;
+  }else{
+    // a day (or more) was missed: pause the streak rather than wipe it.
+    // count is held where it was, so coming back doesn't cost the learner
+    // everything they'd built up. gap can also be <= 0 if the device clock
+    // moved backwards; holding the count is the safe read there too.
+    streak.count = Math.max(streak.count || 0, 1);
+    streak.paused = true;
+    streak.missedDays = Math.max(gap - 1, 0);
+  }
+
   streak.lastDate = today;
   profile.streak = streak;
   await cloudOrLocalSave("profile", profile);
@@ -709,7 +738,7 @@ function skeletonDocHTML(note){
 function streakChipHTML(){
   const count = profile?.streak?.count || 0;
   if(count < 1) return "";
-  return `<div class="streak-chip">${count === 1 ? "\u{1F525} Day 1 \u2014 streak started" : `\u{1F525} ${count}-day streak`}</div>`;
+  return `<div class="streak-chip">${count === 1 ? "\u{1F525} Day 1, streak started" : `\u{1F525} ${count}-day streak`}</div>`;
 }
 
 function renderStreak(){
@@ -717,7 +746,7 @@ function renderStreak(){
   const count = profile?.streak?.count || 0;
   if(count < 1){ chip.style.display = "none"; return; }
   chip.style.display = "inline-flex";
-  chip.textContent = count === 1 ? "🔥 Day 1 — streak started" : `🔥 ${count}-day streak`;
+  chip.textContent = count === 1 ? "🔥 Day 1, streak started" : `🔥 ${count}-day streak`;
 }
 
 function setHomeContent(){
@@ -753,7 +782,7 @@ function setHomeContent(){
     ${nextExam ? `
     <div class="nextup">
       <div class="nu-dot" style="background:${nextExamDone ? 'var(--ink-faint)' : subjectColour(nextExam.subject).ink};"></div>
-      <div><b>${escapeHtml(nextExam.subject)}</b><span>${nextExamDone ? 'Exam done ✓ — no exams coming up' : `${openTodos} open to-do${openTodos===1?'':'s'} waiting for you`}</span></div>
+      <div><b>${escapeHtml(nextExam.subject)}</b><span>${nextExamDone ? 'Exam done ✓, no exams coming up' : `${openTodos} open to-do${openTodos===1?'':'s'} waiting for you`}</span></div>
       <div class="nu-days${nextExamDone?' done':''}">${countdownLabel(nextExam.date)}</div>
     </div>` : `
     <div class="nextup">
@@ -928,7 +957,7 @@ async function shareStreak(){
     const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
     if(!blob) throw new Error("no blob");
     const file = new File([blob], "locked-inn-streak.png", { type:"image/png" });
-    const text = `${(profile.streak&&profile.streak.count)||0} days locked in 🔥 Study with me on Locked Inn — https://lockedinn.co.za`;
+    const text = `${(profile.streak&&profile.streak.count)||0} days locked in 🔥 Study with me on Locked Inn: https://lockedinn.co.za`;
     if(navigator.canShare && navigator.canShare({ files:[file] })){
       await navigator.share({ files:[file], text });
     }else{
@@ -945,7 +974,7 @@ async function shareStreak(){
 }
 
 async function shareApp(){
-  const shareData = { title: "Locked Inn", text: "Check out Locked Inn — free study app with AI flashcards, notes, past papers & a tutor 📚", url: "https://lockedinn.co.za" };
+  const shareData = { title: "Locked Inn", text: "Check out Locked Inn, a free study app with AI flashcards, notes, past papers & a tutor 📚", url: "https://lockedinn.co.za" };
   if(navigator.share){ try{ await navigator.share(shareData); }catch(e){} }
   else { try{ await navigator.clipboard.writeText(shareData.text + " " + shareData.url); toast("Share link copied!"); }catch(e){ toast("Couldn't share"); } }
 }
@@ -1031,7 +1060,7 @@ function toggleAuthMode(){
   }else{
     document.getElementById("authEyebrow").textContent = "Welcome";
     document.getElementById("authTitle").textContent = "Create your account";
-    document.getElementById("authSub").textContent = "One-time sign up — we'll keep every deck, note and streak safe for you, wherever you log in.";
+    document.getElementById("authSub").textContent = "One-time sign up. We'll keep every deck, note and streak safe for you, wherever you log in.";
     document.getElementById("nameField").style.display = "";
     document.getElementById("authBtn").textContent = "Create account";
     document.getElementById("authToggle").textContent = "Already have an account? Log in";
@@ -1050,7 +1079,7 @@ async function forgotPassword(){
   try{
     await window.firebaseResetPassword(email);
     const notice = document.getElementById("authNotice");
-    notice.textContent = "Check your email — we've sent you a link to reset your password. (Look in spam too, just in case.)";
+    notice.textContent = "Check your email. We've sent you a link to reset your password. (Look in spam too, just in case.)";
     notice.style.display = "block";
   }catch(e){
     showAuthError(friendlyAuthError(e));
@@ -1059,12 +1088,12 @@ async function forgotPassword(){
 
 function friendlyAuthError(e){
   const code = e.code || "";
-  if(code.includes("email-already-in-use")) return "That email's already registered — try logging in instead.";
+  if(code.includes("email-already-in-use")) return "That email's already registered. Try logging in instead.";
   if(code.includes("invalid-email")) return "That email doesn't look right.";
   if(code.includes("weak-password")) return "Password needs to be at least 6 characters.";
   if(code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Email or password doesn't match our records.";
-  if(code.includes("too-many-requests")) return "Too many attempts — wait a moment and try again.";
-  return e.message || "Something went wrong — try again.";
+  if(code.includes("too-many-requests")) return "Too many attempts. Wait a moment and try again.";
+  return e.message || "Something went wrong. Try again.";
 }
 
 async function submitAuth(){
@@ -1074,7 +1103,7 @@ async function submitAuth(){
   const name = document.getElementById("nameInput").value.trim();
   document.getElementById("authError").style.display = "none";
   if(!email || !password){ showAuthError("Enter an email and password."); return; }
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ showAuthError("That email doesn't look right — check for typos."); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ showAuthError("That email doesn't look right. Check for typos."); return; }
   if(authMode === "signup" && password.length < 6){ showAuthError("Password needs to be at least 6 characters."); return; }
   if(authMode === "signup" && password !== confirm){ showAuthError("Both passwords need to match."); return; }
   const btn = document.getElementById("authBtn");
@@ -1154,6 +1183,13 @@ function renderDashboard(){
   const examsByDate = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date));
   const upcoming = examsByDate.filter(r=>!examHasPassed(r.date));
   const pastExams = examsByDate.filter(r=>examHasPassed(r.date)).reverse();
+  // display order only: open tasks first, done ones sunk to the bottom.
+  // two filters over data.todos, so storage order is never touched and each
+  // group keeps the order it already had.
+  const todosByState = [
+    ...data.todos.filter(t=>!t.done),
+    ...data.todos.filter(t=>t.done),
+  ];
   document.getElementById("dashboardPad").innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
       <img src="assets/logo-book.png" alt="" style="display:block;flex:none;width:52px;height:auto;">
@@ -1175,12 +1211,12 @@ function renderDashboard(){
     <div class="section-title"><h3>Exam reminders</h3><button onclick="openReminderModal()">+ Add</button></div>
     <button class="btn ghost push-toggle ${pushIsOn()?'on':''}" onclick="toggleExamPush()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-      ${pushIsOn() ? "Reminders on — tap to turn off" : "Remind me before my exams"}
+      ${pushIsOn() ? "Reminders on, tap to turn off" : "Remind me before my exams"}
     </button>
     <div class="card" id="remList">
       ${upcoming.length
         ? upcoming.map(reminderRowHTML).join("")
-        : `<div class="empty">${pastExams.length ? "No exams coming up — you're all caught up ✓" : "No exams added yet. Add one so Locked Inn can start reminding you."}</div>`}
+        : `<div class="empty">${pastExams.length ? "No exams coming up, you're all caught up ✓" : "No exams added yet. Add one so Locked Inn can start reminding you."}</div>`}
       ${pastExams.length ? `
       <details class="past-exams">
         <summary>Past exams (${pastExams.length})</summary>
@@ -1190,7 +1226,7 @@ function renderDashboard(){
 
     <div class="section-title"><h3>To-do checklist</h3><button onclick="openTodoModal()">+ Add</button></div>
     <div class="card" id="todoList">
-      ${data.todos.length ? data.todos.map(t=>`
+      ${todosByState.length ? todosByState.map(t=>`
         <div class="todo-row ${t.done?'done':''}">
           <div class="chk ${t.done?'done':''}" onclick="toggleTodo('${t.id}')">${t.done?'✓':''}</div>
           <span>${escapeHtml(t.text)}</span>
@@ -1214,7 +1250,7 @@ function renderDashboard(){
 function logOut(){
   showModal(`
     <h3>Log out?</h3>
-    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">Your notes, decks and reminders stay saved to your account — log back in with your email any time to pick up where you left off.</p>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">Your notes, decks and reminders stay saved to your account. Log back in with your email any time to pick up where you left off.</p>
     <button class="btn" onclick="doLogOut()">Log out</button>
   `);
 }
@@ -1239,18 +1275,18 @@ function autoGenerateReminderTodos(){
     if(d>=0 && d<=3){
       const already = data.todos.some(t=>t.autoFor===r.id);
       if(!already){
-        data.todos.unshift({id:crypto.randomUUID(), text:`Revise ${r.subject} — exam in ${d} day${d===1?'':'s'}`, done:false, autoFor:r.id});
+        data.todos.unshift({id:crypto.randomUUID(), text:`Revise ${r.subject}: exam in ${d} day${d===1?'':'s'}`, done:false, autoFor:r.id});
         changed = true;
       }
     }
 
     // distinct notifications: 2 days before, and 1 day before
     if(d===2 && !r.notified2){
-      notifyUser(`2 days until ${r.subject}`, `Your exam is in 2 days — good time to start final revision.`);
+      notifyUser(`2 days until ${r.subject}`, `Your exam is in 2 days. Good time to start final revision.`);
       r.notified2 = true; changed = true;
     }
     if(d===1 && !r.notified1){
-      notifyUser(`Tomorrow: ${r.subject}`, `Your exam is tomorrow — one more focused review session tonight.`);
+      notifyUser(`Tomorrow: ${r.subject}`, `Your exam is tomorrow. One more focused review session tonight.`);
       r.notified1 = true; changed = true;
     }
   });
@@ -1321,10 +1357,10 @@ async function toggleExamPush(){
     profile = { ...profile, pushOn:true };
     await cloudOrLocalSave("profile", profile);
     renderDashboard();
-    toast("Exam reminders on — we'll nudge you before each exam");
+    toast("Exam reminders on. We'll nudge you before each exam");
   }catch(e){
     console.error(e);
-    toast("Couldn't turn reminders on — try again");
+    toast("Couldn't turn reminders on, try again");
   }
 }
 
@@ -1391,7 +1427,7 @@ function renderFlashcards(){
     ${topbarHTML()}
     <p class="eyebrow">Flashcards</p>
     <h1 class="pagetitle">Create a deck</h1>
-    <p class="sub">Tell us the subject and topics — Locked Inn's AI will build the cards.</p>
+    <p class="sub">Tell us the subject and topics. Locked Inn's AI will build the cards.</p>
     <div class="card">
       <div class="field"><label class="field-label">Subject</label><input type="text" id="fSubject" placeholder="e.g. Biology"></div>
       <div class="field"><label class="field-label">Scope / subtopics</label><textarea id="fScope" placeholder="e.g. Cell structure, mitosis, diffusion vs osmosis"></textarea></div>
@@ -1403,7 +1439,7 @@ function renderFlashcards(){
         <div class="deck" onclick="openDeck('${d.id}')">
           <div class="deck-ic" style="background:${subjectColour(d.subject).bg};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${subjectColour(d.subject).ink}" stroke-width="2"><rect x="4" y="6" width="14" height="10" rx="2"/><rect x="7" y="9" width="14" height="10" rx="2"/></svg></div>
           <div style="flex:1;min-width:0;"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(d.subject)}</b><span>${d.cards.length} cards</span></div>
-        </div>`).join("") : `<div class="empty">No decks yet — generate your first one above.</div>`}
+        </div>`).join("") : `<div class="empty">No decks yet. Generate your first one above.</div>`}
     </div>
   `;
 }
@@ -1446,7 +1482,7 @@ async function generateDeck(){
     toast("Deck created");
     openDeck(deck.id);
   }catch(e){
-    toast("Couldn't generate cards — try again");
+    toast("Couldn't generate cards, try again");
     renderFlashcards();
   }
   btn.textContent = "✦ Generate flashcards"; btn.disabled = false;
@@ -1472,7 +1508,7 @@ function renderDeckStudy(){
     </div>
     <div class="card-nav">
       <button onclick="prevCard()">‹</button>
-      <div class="card-progress">${cardIndex+1} / ${currentDeck.cards.length} — tap card to flip</div>
+      <div class="card-progress">${cardIndex+1} / ${currentDeck.cards.length}, tap card to flip</div>
       <button onclick="nextCard()">›</button>
     </div>
   `;
@@ -1518,7 +1554,7 @@ function renderNotes(){
         <b>${escapeHtml(n.title)}</b>
         <p>${escapeHtml(n.body)}</p>
         <div class="nd">${formatDate(n.date, true)}</div>
-      </div>`).join("") : `<div class="empty">No notes yet — jot down your first one.</div>`}
+      </div>`).join("") : `<div class="empty">No notes yet. Jot down your first one.</div>`}
   `;
 }
 function openNoteModal(existing){
@@ -1568,7 +1604,7 @@ function renderPapers(){
     ${topbarHTML()}
     <p class="eyebrow">Past papers</p>
     <h1 class="pagetitle">Find a past paper</h1>
-    <p class="sub">Straight from Stanmore Physics — free South African past papers for grades 8 to 12.</p>
+    <p class="sub">Straight from Stanmore Physics: free South African past papers for grades 8 to 12.</p>
     <div class="card">
       <div class="field"><label class="field-label">Subject</label>
         <select id="pSubject">${Object.keys(STANMORE).map(s=>`<option value="${escapeAttr(s)}" ${s===prevSubject?'selected':''}>${escapeHtml(s)}</option>`).join("")}</select>
@@ -1598,7 +1634,7 @@ function openStanmore(){
   const subject = document.getElementById("pSubject").value;
   const grade = document.getElementById("pGrade").value;
   const slug = STANMORE[subject]?.[grade];
-  if(!slug){ toast(`${subject} isn't listed for grade ${grade} on Stanmore — try grade 12`); return; }
+  if(!slug){ toast(`${subject} isn't listed for grade ${grade} on Stanmore. Try grade 12`); return; }
   window.open(`https://stanmorephysics.com/${slug}/`, "_blank", "noopener");
 }
 
@@ -1666,7 +1702,7 @@ function renderChatLog(){
   const log = document.getElementById("chatlog");
   if(!log) return;
   if(chat.length===0){
-    log.innerHTML = `<div class="msg bot">Hey ${profile?.name||''}! I'm your study tutor. Ask me to explain a topic, quiz you, or help plan revision — I'll also point you to useful YouTube videos.</div>`;
+    log.innerHTML = `<div class="msg bot">Hey ${profile?.name||''}! I'm your study tutor. Ask me to explain a topic, quiz you, or help plan revision. I'll also point you to useful YouTube videos.</div>`;
     return;
   }
   log.innerHTML = chat.map(m=>{
@@ -1723,7 +1759,7 @@ async function sendChat(){
     }
     chat.push({role:"bot", text:result.reply, videos:result.youtube_queries});
   }catch(e){
-    chat.push({role:"bot", text:"Hmm, I couldn't get through just then — give it one more try in a moment.", videos:[]});
+    chat.push({role:"bot", text:"Hmm, I couldn't get through just then. Give it one more try in a moment.", videos:[]});
   }
   document.getElementById("typingRow")?.remove();
   /* strip images before saving so cloud/local storage doesn't bloat with photo data */
@@ -1811,7 +1847,7 @@ async function generateMaterial(){
     document.getElementById("genResult").innerHTML = `
       <div class="gen-result">
         <h3>${escapeHtml(parsed.title || subject)}</h3>
-        <p class="sub" style="margin:0 0 14px;">${typeLabel} — ready to download.</p>
+        <p class="sub" style="margin:0 0 14px;">${typeLabel}, ready to download.</p>
         <button class="btn" onclick="downloadPDF()">⤓ Download PDF</button>
       </div>
     `;
@@ -1827,7 +1863,7 @@ async function generateMaterial(){
     renderLibrarySection();
   }catch(e){
     document.getElementById("genResult").innerHTML = "";
-    toast("Couldn't generate that — try again");
+    toast("Couldn't generate that, try again");
   }
   btn.textContent = label; btn.disabled = false;
 }
@@ -1875,7 +1911,7 @@ async function buildPDFDoc({ type, subject, parsed }){
   doc.setFont("helvetica","normal");
   doc.setFontSize(10);
   const typeLabel = (GEN_TYPES.find(t=>t.id===type)||{}).label || type;
-  doc.text(`${typeLabel} — ${subject}`, marginX, 23);
+  doc.text(`${typeLabel}: ${subject}`, marginX, 23);
 
   const logo = await getLogoDataURL();
   if(logo){
@@ -1989,7 +2025,7 @@ function renderLibrarySection(){
       </div>
       <button class="del" title="Share" onclick="event.stopPropagation();shareLibraryItem('${item.id}')">⤴</button>
       <button class="del" title="Delete" onclick="event.stopPropagation();deleteLibraryItem('${item.id}')">✕</button>
-    </div>`).join("") : `<div class="empty">Nothing generated yet — your PDFs will show up here.</div>`;
+    </div>`).join("") : `<div class="empty">Nothing generated yet. Your PDFs will show up here.</div>`;
   const clearBtn = document.getElementById("genLibraryClear");
   if(clearBtn) clearBtn.style.display = lib.length ? "" : "none";
 }
@@ -2000,7 +2036,7 @@ function openLibraryItemMenu(id){
   const typeLabel = (GEN_TYPES.find(t=>t.id===item.type)||{}).label || item.type;
   showModal(`
     <h3>${escapeHtml(item.title)}</h3>
-    <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 16px;">${escapeHtml(typeLabel)} — ${formatDate(item.created, true)}</p>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 16px;">${escapeHtml(typeLabel)}, ${formatDate(item.created, true)}</p>
     <button class="btn" style="margin-bottom:10px;" onclick="closeModal();viewLibraryItem('${item.id}')">👁 View</button>
     <button class="btn secondary" style="margin-bottom:10px;" onclick="closeModal();downloadLibraryItem('${item.id}')">⤓ Download</button>
     <button class="btn secondary" style="margin-bottom:10px;" onclick="closeModal();shareLibraryItem('${item.id}')">⤴ Share</button>
@@ -2118,6 +2154,8 @@ function escapeAttr(s){ return escapeHtml(s); }
 if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(()=>{});
+    /* FCM's background worker, at its own scope so it doesn't displace sw.js at "/" */
+    navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './firebase-cloud-messaging-push-scope' }).catch(()=>{});
   });
 }
 </script>

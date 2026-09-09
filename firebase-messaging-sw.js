@@ -13,26 +13,33 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "Locked Inn";
-  const options = {
-    body: payload.notification?.body || "",
-    icon: "icons/icon-192.png",
-    badge: "icons/icon-96.png"
-  };
-  self.registration.showNotification(title, options);
+  /* Two senders reach this worker with different shapes:
+     - Firebase Console / any "notification" message -> payload.notification
+     - netlify/functions/exam-reminders.js (data-only) -> payload.data
+     Read both so neither renders blank. */
+  const d = payload.data || {};
+  const n = payload.notification || {};
+  self.registration.showNotification(d.title || n.title || "Locked Inn", {
+    body: d.body || n.body || "",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-96.png",
+    tag: d.tag || "locked-inn",
+    data: { url: d.url || "./" }
+  });
 });
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "./", self.location.origin).href;
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes("lockedinn.co.za") && "focus" in client) {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          client.navigate(target);
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow("https://lockedinn.co.za");
-      }
+      return self.clients.openWindow(target);
     })
   );
 });
