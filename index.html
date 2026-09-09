@@ -455,6 +455,7 @@ const firebaseConfig = {
   storageBucket: "locked-inn.firebasestorage.app",
   messagingSenderId: "228735115843",
   appId: "1:228735115843:web:dbf50e000c1804c90ceaf6",
+  measurementId: "G-89CBGCE6XS",
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
@@ -468,16 +469,38 @@ import {
 import {
   getMessaging, getToken, isSupported
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging.js";
+import {
+  getAnalytics, logEvent, isSupported as analyticsSupported
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
 
-let auth = null, db = null;
+let auth = null, db = null, app = null;
 
 window.firebaseReady = false;
 try{
-  const app = initializeApp(firebaseConfig);
+  app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
   window.firebaseReady = true;
 }catch(e){ console.error("Firebase init failed", e); }
+
+/* ---------- Analytics ----------
+   logAppEvent is defined synchronously so call sites never race the async
+   support check below; until analytics resolves it simply no-ops. Analytics is
+   unsupported in some browsers and in private/embedded contexts, which is not
+   an error worth surfacing to the learner. */
+let analytics = null;
+window.logAppEvent = function(eventName, params){
+  if(!analytics) return;
+  try{ logEvent(analytics, eventName, params || {}); }catch(e){}
+};
+
+/* async IIFE, not top-level await: awaiting here would stall every helper
+   defined further down this module. */
+(async () => {
+  try{
+    if(app && await analyticsSupported()){ analytics = getAnalytics(app); }
+  }catch(e){ console.log("Analytics not supported", e); }
+})();
 
 window.firebaseSignUp = async function(email, password, name){
   if(!window.firebaseReady) throw new Error("Firebase isn't configured yet — add your project keys in index.html.");
@@ -1113,8 +1136,10 @@ async function submitAuth(){
   try{
     if(authMode === "signup"){
       await window.firebaseSignUp(email, password, name || "Student");
+      window.logAppEvent?.("sign_up");
     }else{
       await window.firebaseSignIn(email, password);
+      window.logAppEvent?.("login");
     }
     /* navigation + data loading happens in the onAuthStateChanged listener */
   }catch(e){
@@ -1479,6 +1504,7 @@ async function generateDeck(){
     const deck = {id:crypto.randomUUID(), subject, scope, cards:parsed.cards};
     data.decks.unshift(deck);
     await persist();
+    window.logAppEvent?.("generate_flashcards");
     toast("Deck created");
     openDeck(deck.id);
   }catch(e){
@@ -1622,10 +1648,10 @@ function renderPapers(){
     </div>
     <div class="section-title"><h3>Quick links · Grade 12</h3></div>
     ${STANMORE_QUICK.map(s=>`
-      <a class="paper-link" href="https://stanmorephysics.com/${STANMORE[s][12]}/" target="_blank" rel="noopener">
+      <a class="paper-link" href="https://stanmorephysics.com/${STANMORE[s][12]}/" target="_blank" rel="noopener" onclick="window.logAppEvent?.('view_past_paper',{subject:'${escapeAttr(s)}',grade:'12',source:'quick_link'})">
         <div class="paper-ic">📄</div><div><b>${escapeHtml(s)}</b><span>Past exam papers &amp; memos</span></div>
       </a>`).join("")}
-    <a class="paper-link" href="https://stanmorephysics.com/" target="_blank" rel="noopener">
+    <a class="paper-link" href="https://stanmorephysics.com/" target="_blank" rel="noopener" onclick="window.logAppEvent?.('view_past_paper',{source:'browse_site'})">
       <div class="paper-ic">🔗</div><div><b>Browse the full site</b><span>All subjects, grades 8–12</span></div>
     </a>
   `;
@@ -1635,6 +1661,7 @@ function openStanmore(){
   const grade = document.getElementById("pGrade").value;
   const slug = STANMORE[subject]?.[grade];
   if(!slug){ toast(`${subject} isn't listed for grade ${grade} on Stanmore. Try grade 12`); return; }
+  window.logAppEvent?.("view_past_paper", { subject, grade, source:"picker" });
   window.open(`https://stanmorephysics.com/${slug}/`, "_blank", "noopener");
 }
 
@@ -1758,6 +1785,7 @@ async function sendChat(){
       result = await requestTutorReply(body);
     }
     chat.push({role:"bot", text:result.reply, videos:result.youtube_queries});
+    window.logAppEvent?.("tutor_message", { with_image: !!imageToSend });
   }catch(e){
     chat.push({role:"bot", text:"Hmm, I couldn't get through just then. Give it one more try in a moment.", videos:[]});
   }
@@ -1861,6 +1889,7 @@ async function generateMaterial(){
     });
     await persist();
     renderLibrarySection();
+    window.logAppEvent?.("generate_pdf", { type: genData.type });
   }catch(e){
     document.getElementById("genResult").innerHTML = "";
     toast("Couldn't generate that, try again");
