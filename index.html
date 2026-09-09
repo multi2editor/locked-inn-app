@@ -104,7 +104,7 @@ button{font-family:inherit;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
 /* ---------- Shared layout ---------- */
-.pad{padding:24px 22px 100px;position:relative;z-index:1;flex:1;overflow-y:auto;}
+.pad{padding:24px 22px 100px;position:relative;z-index:1;flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;position:relative;z-index:1;}
 .brand{display:flex;align-items:center;gap:9px;}
 .brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
@@ -169,22 +169,23 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .quote-card p{font-size:16.5px;line-height:1.5;margin:8px 0 10px;font-weight:500;}
 .quote-card .tag{font-size:12px;opacity:.75;}
 .shortcut-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px;}
-.shortcut-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.shortcut-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;min-width:0;overflow:hidden;}
 .shortcut-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
 .shortcut-tile:active{transform:scale(.96);}
 .shortcut-tile .sic{width:34px;height:34px;border-radius:10px;background:var(--violet-tint);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
-.shortcut-tile span{font-size:11.5px;font-weight:600;}
+.shortcut-tile span{font-size:11.5px;font-weight:600;overflow-wrap:break-word;}
 .nextup{display:flex;align-items:center;gap:12px;background:var(--frame-dark);color:#fff;border-radius:16px;padding:13px 15px;margin-top:16px;}
 .nextup .nu-dot{width:9px;height:9px;border-radius:50%;background:var(--violet);flex:none;}
 .nextup b{display:block;font-size:13.5px;}
 .nextup span{font-size:11.5px;opacity:.7;}
 .nextup .nu-days{margin-left:auto;font-size:12px;font-weight:700;color:var(--violet);}
+.nextup .nu-days.done{color:rgba(255,255,255,.72);font-weight:600;}
 
 /* ---------- Dashboard ---------- */
 .stat-row{display:flex;gap:12px;margin-bottom:18px;}
-.stat{flex:1;background:var(--card);border-radius:16px;padding:14px;text-align:center;border:1px solid var(--line);}
+.stat{flex:1;min-width:0;background:var(--card);border-radius:16px;padding:14px;text-align:center;border:1px solid var(--line);overflow:hidden;}
 .stat b{display:block;font-size:20px;font-family:'Space Grotesk';}
-.stat span{font-size:11px;color:var(--ink-soft);}
+.stat span{font-size:11px;color:var(--ink-soft);overflow-wrap:break-word;}
 .section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
 .section-title h3{font-size:15.5px;margin:0;}
 .section-title button{background:none;border:none;color:var(--violet-deep);font-weight:700;font-size:13px;cursor:pointer;}
@@ -200,16 +201,24 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .push-toggle{margin-bottom:10px;font-size:13px;}
 .push-toggle.on{background:var(--violet-tint);color:var(--violet-deep);border-color:var(--violet-tint);}
 .rcount{margin-left:auto;font-size:12px;font-weight:700;color:var(--coral);background:var(--coral-tint);padding:4px 9px;border-radius:20px;}
+.rcount.done{color:var(--violet-deep);background:var(--violet-tint);}
+.reminder-row.past .rdot{background:var(--ink-faint);}
+.reminder-row.past .rmeta b{color:var(--ink-soft);}
+.past-exams>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:14px 0 4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--ink-faint);}
+.past-exams>summary::-webkit-details-marker{display:none;}
+.past-exams>summary::after{content:"▾";margin-left:auto;font-size:11px;}
+.past-exams[open]>summary::after{content:"▴";}
+.past-exams .reminder-row{border-top:1px solid var(--line);border-bottom:none;}
 .chk{width:20px;height:20px;border-radius:7px;border:2px solid var(--line);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .chk.done{background:var(--mint);border-color:var(--mint);color:#fff;}
 .todo-row span{font-size:14.5px;flex:1;}
 .todo-row.done span{text-decoration:line-through;color:var(--ink-faint);}
-.del{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:16px;padding:4px;}
+.del{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:16px;padding:4px;flex:none;}
 .empty{text-align:center;padding:28px 10px;color:var(--ink-faint);font-size:13.5px;}
 
 /* ---------- Flashcards ---------- */
-.deck-list{display:grid;gap:12px;}
-.deck{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.deck-list{display:grid;gap:12px;grid-template-columns:1fr;width:100%;}
+.deck{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;max-width:100%;overflow:hidden;box-sizing:border-box;}
 .deck:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
 .deck:active{transform:scale(.98);}
 .deck-ic{width:38px;height:38px;border-radius:11px;background:var(--violet-tint);display:flex;align-items:center;justify-content:center;flex:none;}
@@ -268,12 +277,12 @@ label.field-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:
 .offline-bar{position:absolute;top:0;left:0;right:0;z-index:40;background:var(--ink);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 12px;}
 .toast{position:absolute;left:22px;right:22px;bottom:96px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:13px;z-index:30;box-shadow:var(--shadow-lg);text-align:center;}
 
-.gen-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;}
+.gen-tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;min-width:0;overflow:hidden;}
 .gen-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
 .gen-tile:active{transform:scale(.96);}
 .gen-tile.selected{border-color:var(--violet);background:var(--violet-tint);box-shadow:0 0 0 2px var(--violet);}
 .gen-tile .gt-ic{font-size:20px;margin-bottom:6px;}
-.gen-tile span{font-size:12px;font-weight:600;}
+.gen-tile span{font-size:12px;font-weight:600;overflow-wrap:break-word;}
 .gen-result{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
 .gen-result h3{margin:0 0 10px;}
 
@@ -721,7 +730,10 @@ function setHomeContent(){
   document.getElementById("quoteText").textContent = QUOTES[dayIndex];
 
   const openTodos = data.todos.filter(t=>!t.done).length;
-  const nextExam = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date))[0];
+  const examsByDate = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  // prefer the next exam still ahead; if every exam is behind us, show the last one as done
+  const nextExam = examsByDate.find(r=>!examHasPassed(r.date)) || examsByDate[examsByDate.length-1];
+  const nextExamDone = nextExam ? examHasPassed(nextExam.date) : false;
 
   document.getElementById("homeExtra").innerHTML = `
     <div class="shortcut-row">
@@ -740,9 +752,9 @@ function setHomeContent(){
     </div>
     ${nextExam ? `
     <div class="nextup">
-      <div class="nu-dot" style="background:${subjectColour(nextExam.subject).ink};"></div>
-      <div><b>${escapeHtml(nextExam.subject)}</b><span>${openTodos} open to-do${openTodos===1?'':'s'} waiting for you</span></div>
-      <div class="nu-days">${daysUntil(nextExam.date)}d</div>
+      <div class="nu-dot" style="background:${nextExamDone ? 'var(--ink-faint)' : subjectColour(nextExam.subject).ink};"></div>
+      <div><b>${escapeHtml(nextExam.subject)}</b><span>${nextExamDone ? 'Exam done ✓ — no exams coming up' : `${openTodos} open to-do${openTodos===1?'':'s'} waiting for you`}</span></div>
+      <div class="nu-days${nextExamDone?' done':''}">${countdownLabel(nextExam.date)}</div>
     </div>` : `
     <div class="nextup">
       <div class="nu-dot"></div>
@@ -916,7 +928,7 @@ async function shareStreak(){
     const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
     if(!blob) throw new Error("no blob");
     const file = new File([blob], "locked-inn-streak.png", { type:"image/png" });
-    const text = `${(profile.streak&&profile.streak.count)||0} days locked in 🔥 Study with me on Locked Inn — https://locked-inn1.netlify.app`;
+    const text = `${(profile.streak&&profile.streak.count)||0} days locked in 🔥 Study with me on Locked Inn — https://lockedinn.co.za`;
     if(navigator.canShare && navigator.canShare({ files:[file] })){
       await navigator.share({ files:[file], text });
     }else{
@@ -933,7 +945,7 @@ async function shareStreak(){
 }
 
 async function shareApp(){
-  const shareData = { title: "Locked Inn", text: "Check out Locked Inn — free study app with AI flashcards, notes, past papers & a tutor 📚", url: "https://locked-inn1.netlify.app" };
+  const shareData = { title: "Locked Inn", text: "Check out Locked Inn — free study app with AI flashcards, notes, past papers & a tutor 📚", url: "https://lockedinn.co.za" };
   if(navigator.share){ try{ await navigator.share(shareData); }catch(e){} }
   else { try{ await navigator.clipboard.writeText(shareData.text + " " + shareData.url); toast("Share link copied!"); }catch(e){ toast("Couldn't share"); } }
 }
@@ -1120,10 +1132,28 @@ function daysUntil(dateStr){
   return Math.ceil((d-now)/86400000);
 }
 
+/* Display helpers: an exam whose date has gone by reads as a completed
+   checkpoint, never as a negative countdown. */
+function examHasPassed(dateStr){ return daysUntil(dateStr) < 0; }
+function countdownLabel(dateStr){ return examHasPassed(dateStr) ? "✓ Completed" : `${daysUntil(dateStr)}d`; }
+
+function reminderRowHTML(r){
+  const past = examHasPassed(r.date);
+  return `
+        <div class="reminder-row${past?' past':''}">
+          <div class="rdot" style="background:${past ? 'var(--ink-faint)' : subjectColour(r.subject).ink};"></div>
+          <div class="rmeta"><b>${escapeHtml(r.subject)}</b><span>${formatDate(r.date)}${past?' · Exam done':''}</span></div>
+          <div class="rcount${past?' done':''}">${countdownLabel(r.date)}</div>
+          <button class="del" onclick="removeReminder('${r.id}')">✕</button>
+        </div>`;
+}
+
 function renderDashboard(){
   autoGenerateReminderTodos();
   const doneCount = data.todos.filter(t=>t.done).length;
-  const upcoming = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const examsByDate = [...data.reminders].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const upcoming = examsByDate.filter(r=>!examHasPassed(r.date));
+  const pastExams = examsByDate.filter(r=>examHasPassed(r.date)).reverse();
   document.getElementById("dashboardPad").innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
       <img src="assets/logo-book.png" alt="" style="display:block;flex:none;width:52px;height:auto;">
@@ -1137,9 +1167,9 @@ function renderDashboard(){
     ${streakChipHTML()}
     <p class="sub">Here's what's on your plate today.</p>
     <div class="stat-row">
-      <div class="stat"><b>${data.todos.length}</b><span>To-dos</span></div>
-      <div class="stat"><b>${doneCount}</b><span>Completed</span></div>
-      <div class="stat"><b>${data.reminders.length}</b><span>Exams</span></div>
+      <div class="stat"><b>${doneCount}</b><span>To-dos Done</span></div>
+      <div class="stat"><b>${pastExams.length}</b><span>Exams Completed</span></div>
+      <div class="stat"><b>${upcoming.length}</b><span>Exams Left</span></div>
     </div>
 
     <div class="section-title"><h3>Exam reminders</h3><button onclick="openReminderModal()">+ Add</button></div>
@@ -1148,13 +1178,14 @@ function renderDashboard(){
       ${pushIsOn() ? "Reminders on — tap to turn off" : "Remind me before my exams"}
     </button>
     <div class="card" id="remList">
-      ${upcoming.length ? upcoming.map(r=>`
-        <div class="reminder-row">
-          <div class="rdot" style="background:${subjectColour(r.subject).ink};"></div>
-          <div class="rmeta"><b>${escapeHtml(r.subject)}</b><span>${formatDate(r.date)}</span></div>
-          <div class="rcount">${daysUntil(r.date)}d</div>
-          <button class="del" onclick="removeReminder('${r.id}')">✕</button>
-        </div>`).join("") : `<div class="empty">No exams added yet. Add one so Locked Inn can start reminding you.</div>`}
+      ${upcoming.length
+        ? upcoming.map(reminderRowHTML).join("")
+        : `<div class="empty">${pastExams.length ? "No exams coming up — you're all caught up ✓" : "No exams added yet. Add one so Locked Inn can start reminding you."}</div>`}
+      ${pastExams.length ? `
+      <details class="past-exams">
+        <summary>Past exams (${pastExams.length})</summary>
+        ${pastExams.map(reminderRowHTML).join("")}
+      </details>` : ""}
     </div>
 
     <div class="section-title"><h3>To-do checklist</h3><button onclick="openTodoModal()">+ Add</button></div>
@@ -1371,7 +1402,7 @@ function renderFlashcards(){
       ${data.decks.length ? data.decks.map(d=>`
         <div class="deck" onclick="openDeck('${d.id}')">
           <div class="deck-ic" style="background:${subjectColour(d.subject).bg};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${subjectColour(d.subject).ink}" stroke-width="2"><rect x="4" y="6" width="14" height="10" rx="2"/><rect x="7" y="9" width="14" height="10" rx="2"/></svg></div>
-          <div><b>${escapeHtml(d.subject)}</b><span>${d.cards.length} cards</span></div>
+          <div style="flex:1;min-width:0;"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(d.subject)}</b><span>${d.cards.length} cards</span></div>
         </div>`).join("") : `<div class="empty">No decks yet — generate your first one above.</div>`}
     </div>
   `;
@@ -1932,7 +1963,7 @@ async function buildPDFDoc({ type, subject, parsed }){
     doc.setTextColor(150,150,150);
     doc.text("Made with Locked Inn", marginX, 285);
     doc.setTextColor(76,122,12); // lime
-    doc.text("locked-inn1.netlify.app", pageWidth-marginX, 285, { align:"right" });
+    doc.text("lockedinn.co.za", pageWidth-marginX, 285, { align:"right" });
   }
 
   return doc;
@@ -1954,7 +1985,7 @@ function renderLibrarySection(){
       <div class="deck-ic" style="font-size:18px;background:${subjectColour(item.subject).bg};">${(GEN_TYPES.find(t=>t.id===item.type)||{}).icon || "📄"}</div>
       <div style="flex:1;min-width:0;">
         <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.title)}</b>
-        <span><span style="background:var(--violet-tint);color:var(--violet-deep);border-radius:20px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-right:6px;">${escapeHtml((GEN_TYPES.find(t=>t.id===item.type)||{}).label || item.type)}</span>${formatDate(item.created, true)}</span>
+        <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><span style="background:var(--violet-tint);color:var(--violet-deep);border-radius:20px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-right:6px;">${escapeHtml((GEN_TYPES.find(t=>t.id===item.type)||{}).label || item.type)}</span>${formatDate(item.created, true)}</span>
       </div>
       <button class="del" title="Share" onclick="event.stopPropagation();shareLibraryItem('${item.id}')">⤴</button>
       <button class="del" title="Delete" onclick="event.stopPropagation();deleteLibraryItem('${item.id}')">✕</button>
@@ -2017,7 +2048,7 @@ async function clearLibrary(){
 async function shareLibraryItem(id){
   const item = (data.library||[]).find(x=>x.id===id);
   if(!item) return;
-  const url = "https://locked-inn1.netlify.app";
+  const url = "https://lockedinn.co.za";
   const text = `Check out my "${item.title}" study notes made on Locked Inn 📚`;
   if(navigator.share){
     try{ await navigator.share({ title: item.title, text, url }); }catch(e){ /* user cancelled */ }
