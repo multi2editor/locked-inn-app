@@ -1483,6 +1483,8 @@ async function wipeAllDecks(){
   renderFlashcards();
 }
 
+const NO_EM_DASH_RULE = "Never use em dashes (—) in your responses, use commas, periods, or parentheses instead.";
+
 async function generateDeck(){
   const subject = document.getElementById("fSubject").value.trim();
   const scope = document.getElementById("fScope").value.trim();
@@ -1492,7 +1494,7 @@ async function generateDeck(){
   const deckList = document.querySelector("#flashPad .deck-list");
   if(deckList) deckList.innerHTML = skeletonDeckHTML(1) + deckList.innerHTML;
   try{
-    const prompt = `Create 8 flashcards for a student studying "${subject}", covering these subtopics: ${scope}. Respond ONLY with valid JSON, no markdown, no preamble, in this exact shape: {"cards":[{"front":"question or term","back":"concise answer or definition"}]}`;
+    const prompt = `Create 8 flashcards for a student studying "${subject}", covering these subtopics: ${scope}. ${NO_EM_DASH_RULE} Respond ONLY with valid JSON, no markdown, no preamble, in this exact shape: {"cards":[{"front":"question or term","back":"concise answer or definition"}]}`;
     const res = await fetch("/.netlify/functions/ai",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ prompt })
@@ -1669,7 +1671,10 @@ function openStanmore(){
 function renderTutor(){
   document.getElementById("tutorPad").innerHTML = `
     ${topbarHTML()}
-    <p class="eyebrow" style="margin-top:2px;">AI Tutor</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+      <p class="eyebrow" style="margin:0;">AI Tutor</p>
+      ${chat.length ? `<button onclick="confirmClearChat()" style="background:none;border:none;color:var(--ink-soft);font-weight:600;font-size:12.5px;cursor:pointer;padding:4px 0;">Clear chat</button>` : ''}
+    </div>
     <div class="chatlog" id="chatlog"></div>
     <div id="imgPreviewRow"></div>
     <input type="file" id="imgFileInput" accept="image/*" style="display:none;" onchange="onImagePicked(event)">
@@ -1681,6 +1686,21 @@ function renderTutor(){
   `;
   renderChatLog();
   renderImagePreview();
+}
+
+function confirmClearChat(){
+  showModal(`
+    <h3>Clear your chat?</h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:-6px 0 16px;">Clear your chat with the tutor? This can't be undone.</p>
+    <button class="btn" style="background:var(--coral);color:#fff;box-shadow:none;" onclick="clearChat()">Yes, clear chat</button>
+  `);
+}
+async function clearChat(){
+  chat = [];
+  await cloudOrLocalSave("chat", []);
+  closeModal();
+  toast("Chat cleared");
+  renderTutor();
 }
 
 let pendingImage = null; // { mimeType, data, previewUrl }
@@ -1729,7 +1749,7 @@ function renderChatLog(){
   const log = document.getElementById("chatlog");
   if(!log) return;
   if(chat.length===0){
-    log.innerHTML = `<div class="msg bot">Hey ${profile?.name||''}! I'm your study tutor. Ask me to explain a topic, quiz you, or help plan revision. I'll also point you to useful YouTube videos.</div>`;
+    log.innerHTML = `<div class="msg bot">Hi ${escapeHtml(profile?.name || 'there')}! What are you studying today? Ask me to explain a topic, quiz you, or help plan revision — I'll also point you to useful YouTube videos.</div>`;
     return;
   }
   log.innerHTML = chat.map(m=>{
@@ -1738,7 +1758,7 @@ function renderChatLog(){
       return `<div class="msg user">${img}${m.text ? escapeHtml(m.text) : ""}</div>`;
     }
     let chips = (m.videos||[]).map(v=>`<a class="yt-chip" target="_blank" href="https://www.youtube.com/results?search_query=${encodeURIComponent(v)}">▶ ${escapeHtml(v)}</a>`).join("");
-    return `<div class="msg bot">${escapeHtml(m.text)}${chips?`<div style="margin-top:8px;">${chips}</div>`:''}</div>`;
+    return `<div class="msg bot">${formatBotText(m.text)}${chips?`<div style="margin-top:8px;">${chips}</div>`:''}</div>`;
   }).join("");
   log.scrollTop = log.scrollHeight;
 }
@@ -1774,7 +1794,7 @@ async function sendChat(){
   try{
     const history = chat.slice(-8).map(m=> m.role==="user" ? `Student: ${m.text}${m.image?' [attached a photo]':''}` : `Tutor: ${m.text}`).join("\\n");
     const imageNote = imageToSend ? "The student also attached a photo — look at it carefully (it might be a homework question, exam question, or textbook page) and help them with what's shown." : "";
-    const prompt = `You are a warm, encouraging AI study tutor for a student. Conversation so far:\\n${history}\\n\\n${imageNote}\\nReply to the student's last message helpfully and concisely (max ~150 words). Then suggest 1-3 short, specific YouTube search phrases that would help them understand this topic. Respond ONLY with valid JSON, no markdown: {"reply":"...", "youtube_queries":["...","..."]}`;
+    const prompt = `You are a friendly, knowledgeable AI study tutor for a student. When the student asks a direct question or needs help with homework, give them a clear, direct answer — don't just hint or ask leading questions back — then briefly explain the reasoning so they understand it, not just copy it. Format your reply naturally: use bullet points, numbered steps, or **bold** for key terms when that makes things clearer; don't force every answer into a single dense paragraph. Keep answers reasonably concise unless the topic genuinely needs more depth. ${NO_EM_DASH_RULE} Conversation so far:\\n${history}\\n\\n${imageNote}\\nReply to the student's last message. Then suggest 1-3 short, specific YouTube search phrases that would help them understand this topic. Respond ONLY with valid JSON, no markdown code fences: {"reply":"...", "youtube_queries":["...","..."]}`;
     const body = { prompt };
     if(imageToSend){ body.image = { mimeType: imageToSend.mimeType, data: imageToSend.data }; }
     let result;
@@ -1856,11 +1876,11 @@ async function generateMaterial(){
   try{
     let prompt;
     if(genType === "summary"){
-      prompt = `Create a concise study summary for a student studying "${subject}" on: ${scope}. Each section body should be 3-6 short bullet points, not paragraphs. Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","points":["...","..."]}]}`;
+      prompt = `Create a concise study summary for a student studying "${subject}" on: ${scope}. Each section body should be 3-6 short bullet points, not paragraphs. ${NO_EM_DASH_RULE} Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","points":["...","..."]}]}`;
     }else if(genType === "cheatsheet"){
-      prompt = `Create a condensed exam cheat-sheet for "${subject}" on: ${scope}. Short punchy points. Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","body":"..."}]}`;
+      prompt = `Create a condensed exam cheat-sheet for "${subject}" on: ${scope}. Short punchy points. ${NO_EM_DASH_RULE} Return ONLY valid JSON, no markdown: {"title":"...","sections":[{"heading":"...","body":"..."}]}`;
     }else{
-      prompt = `Create 10 flashcards for "${subject}" on: ${scope}. Return ONLY valid JSON, no markdown: {"title":"...","cards":[{"front":"...","back":"..."}]}`;
+      prompt = `Create 10 flashcards for "${subject}" on: ${scope}. ${NO_EM_DASH_RULE} Return ONLY valid JSON, no markdown: {"title":"...","cards":[{"front":"...","back":"..."}]}`;
     }
     const res = await fetch("/.netlify/functions/ai",{
       method:"POST", headers:{"Content-Type":"application/json"},
@@ -2149,6 +2169,42 @@ function formatDate(d, withTime){
   return dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
 }
 function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Lightweight markdown-ish renderer for tutor replies: handles **bold** and
+   lines starting with "-"/"*" or "1." as list items, without a full markdown lib. */
+function applyInlineBold(escapedText){
+  return escapedText.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+}
+function formatBotText(raw){
+  const text = String(raw||"");
+  const lines = text.split(/\r?\n/);
+  const blocks = [];
+  let currentList = null; // { type: 'ul'|'ol', items: [] }
+  let currentPara = [];
+  const flushPara = () => { if(currentPara.length){ blocks.push({type:"p", text: currentPara.join(" ")}); currentPara = []; } };
+  const flushList = () => { if(currentList){ blocks.push(currentList); currentList = null; } };
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if(trimmed===""){ flushPara(); flushList(); return; }
+    const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/);
+    const numMatch = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if(bulletMatch || numMatch){
+      flushPara();
+      const type = numMatch ? "ol" : "ul";
+      if(!currentList || currentList.type!==type){ flushList(); currentList = {type, items:[]}; }
+      currentList.items.push((bulletMatch||numMatch)[1]);
+    } else {
+      flushList();
+      currentPara.push(trimmed);
+    }
+  });
+  flushPara(); flushList();
+  if(!blocks.length) return "";
+  return blocks.map(b=>{
+    if(b.type==="p") return `<p style="margin:0 0 8px;">${applyInlineBold(escapeHtml(b.text))}</p>`;
+    const items = b.items.map(it=>`<li>${applyInlineBold(escapeHtml(it))}</li>`).join("");
+    return `<${b.type} style="margin:4px 0 8px;padding-left:20px;">${items}</${b.type}>`;
+  }).join("");
+}
 const SUBJECT_COLOURS = [
   { bg:"#E8F1FF", ink:"#1F5FBF" },
   { bg:"#E6F7F2", ink:"#00806D" },

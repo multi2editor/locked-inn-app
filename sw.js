@@ -1,4 +1,4 @@
-const CACHE = "locked-inn-v23";
+const CACHE = "locked-inn-v26";
 const CORE = [
   "./",
   "./index.html",
